@@ -1,6 +1,6 @@
-<mxfile host="drawio-plugin" modified="2026-01-23T21:46:35.557Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="fN91Gr3sOTq4mlc0x5Gz" version="22.1.22" type="embed" pages="2">
+<mxfile host="drawio-plugin" modified="2026-01-23T21:48:18.936Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="LKCsm2_Oz7Thng8hs4Ut" version="22.1.22" type="embed" pages="2">
   <diagram id="AUcg9H3SKQtR-ejoIEI9" name="system architecture">
-    <mxGraphModel dx="698" dy="533" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="698" dy="341" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -124,14 +124,14 @@
         <mxCell id="8" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="230" y="220" width="130" height="310" as="geometry" />
         </mxCell>
-        <mxCell id="10" value="これ、最優先" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="280" y="531.5" width="100" height="30" as="geometry" />
+        <mxCell id="10" value="これ、最優先(tickdata)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="260" y="531.5" width="140" height="30" as="geometry" />
         </mxCell>
         <mxCell id="11" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="210" y="200" width="380" height="150" as="geometry" />
         </mxCell>
-        <mxCell id="12" value="2番目これ。" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="565" y="170" width="90" height="30" as="geometry" />
+        <mxCell id="12" value="2番目これ(dwh)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="555" y="170" width="110" height="30" as="geometry" />
         </mxCell>
         <mxCell id="13" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
           <mxGeometry x="60" y="220" width="130" height="310" as="geometry" />
@@ -139,8 +139,8 @@
         <mxCell id="14" value="これはオプションかな" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
           <mxGeometry x="50" y="535" width="140" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="15" value="3番目これ。" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
-          <mxGeometry x="270" y="130" width="90" height="30" as="geometry" />
+        <mxCell id="15" value="3番目これ(realtime-ui)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="245" y="130" width="140" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
