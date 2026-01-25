@@ -1,9 +1,15 @@
-<mxfile host="drawio-plugin" modified="2026-01-23T21:48:18.936Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="LKCsm2_Oz7Thng8hs4Ut" version="22.1.22" type="embed" pages="2">
+<mxfile host="drawio-plugin" modified="2026-01-25T21:51:37.971Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="plMj9ekwE_h2sTE7ONUj" version="22.1.22" type="embed" pages="2">
   <diagram id="AUcg9H3SKQtR-ejoIEI9" name="system architecture">
-    <mxGraphModel dx="698" dy="341" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="913" dy="644" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
+        <mxCell id="8" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="230" y="220" width="130" height="310" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" parent="1" vertex="1">
+          <mxGeometry x="210" y="200" width="380" height="150" as="geometry" />
+        </mxCell>
         <mxCell id="2" value="・System Architecture" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="20" y="10" width="140" height="30" as="geometry" />
         </mxCell>
@@ -46,8 +52,8 @@
         <mxCell id="AA5g2NOt55UxYZ_jzlha-11" value="DWH" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="465" y="230" width="90" height="40" as="geometry" />
         </mxCell>
-        <mxCell id="AA5g2NOt55UxYZ_jzlha-16" value="&lt;ul&gt;&lt;li&gt;OHLC&lt;/li&gt;&lt;li&gt;Tick&lt;/li&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="290" y="250" width="100" height="70" as="geometry" />
+        <mxCell id="AA5g2NOt55UxYZ_jzlha-16" value="&lt;ul&gt;&lt;li&gt;Tick&lt;/li&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="290" y="260" width="90" height="50" as="geometry" />
         </mxCell>
         <mxCell id="AA5g2NOt55UxYZ_jzlha-17" value="&lt;ul&gt;&lt;li&gt;OHLCチャート表示&lt;/li&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="200" y="48" width="170" height="50" as="geometry" />
@@ -94,7 +100,7 @@
         <mxCell id="AA5g2NOt55UxYZ_jzlha-29" value="&lt;ul&gt;&lt;li&gt;分析&lt;/li&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="460" y="48" width="90" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="3" target="AA5g2NOt55UxYZ_jzlha-8">
+        <mxCell id="4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="3" target="AA5g2NOt55UxYZ_jzlha-8" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="285" y="330" />
@@ -102,7 +108,7 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" edge="1" parent="1" source="3" target="AA5g2NOt55UxYZ_jzlha-20">
+        <mxCell id="6" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0.5;entryY=1;entryDx=0;entryDy=0;" parent="1" source="3" target="AA5g2NOt55UxYZ_jzlha-20" edge="1">
           <mxGeometry relative="1" as="geometry">
             <Array as="points">
               <mxPoint x="135" y="330" />
@@ -110,10 +116,10 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="3" value="Python backend" style="whiteSpace=wrap;html=1;" vertex="1" parent="1">
+        <mxCell id="3" value="Python backend" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
           <mxGeometry x="100" y="350" width="235" height="50" as="geometry" />
         </mxCell>
-        <mxCell id="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" edge="1" parent="1" source="3">
+        <mxCell id="7" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;" parent="1" source="3" edge="1">
           <mxGeometry relative="1" as="geometry">
             <mxPoint x="220" y="130" as="targetPoint" />
             <Array as="points">
@@ -121,25 +127,19 @@
             </Array>
           </mxGeometry>
         </mxCell>
-        <mxCell id="8" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="230" y="220" width="130" height="310" as="geometry" />
-        </mxCell>
-        <mxCell id="10" value="これ、最優先(tickdata)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="10" value="これ、最優先(tickdata)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="260" y="531.5" width="140" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="11" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
-          <mxGeometry x="210" y="200" width="380" height="150" as="geometry" />
-        </mxCell>
-        <mxCell id="12" value="2番目これ(dwh)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="12" value="2番目これ(dwh)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="555" y="170" width="110" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="13" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" vertex="1" parent="1">
+        <mxCell id="13" value="" style="whiteSpace=wrap;html=1;fillColor=none;dashed=1;" parent="1" vertex="1">
           <mxGeometry x="60" y="220" width="130" height="310" as="geometry" />
         </mxCell>
-        <mxCell id="14" value="これはオプションかな" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="14" value="これはオプションかな" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="50" y="535" width="140" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="15" value="3番目これ(realtime-ui)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="15" value="3番目これ(realtime-ui)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="245" y="130" width="140" height="30" as="geometry" />
         </mxCell>
       </root>

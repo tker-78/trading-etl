@@ -1,9 +1,13 @@
 import json
 import websocket
-from datetime import datetime
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo
 from database.base import session_scope
 from database.base import Base
 from sqlalchemy import Column, DateTime, Integer, String, Float
+
+UTC = timezone.utc
+JST = ZoneInfo('Asia/Tokyo')
 
 class Streamer:
     if __debug__:
@@ -26,7 +30,8 @@ class Streamer:
 
     def on_message(self, message, ws):
         data = json.loads(ws)
-        time = datetime.strptime(data['timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        # time = datetime.strptime(data['timestamp'], '%Y-%m-%dT%H:%M:%S.%fZ')
+        time = datetime.fromisoformat(data['timestamp'].replace("Z", "+00:00")).astimezone(UTC)
         bid = float(data['bid'])
         ask = float(data['ask'])
         print(time, bid, ask)
@@ -72,9 +77,8 @@ class Ticker(Base):
                 ticker = Ticker(time=truncated_time, bid=bid, ask=ask)
                 session.add(ticker)
 
-
     def truncate_in_sec(self) -> datetime:
-        return datetime(self.time.year, self.time.month, self.time.day, self.time.hour, self.time.minute, self.time.second)
+        return self.time.replace(microsecond=0)
 
 if __name__ == '__main__':
     Streamer().run()
