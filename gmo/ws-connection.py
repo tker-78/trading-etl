@@ -42,7 +42,7 @@ class Streamer:
 
 class Ticker(Base):
     __tablename__ = 'ticker_usd_jpy'
-    __table_args__ = {"schema": "usd_jpy"}
+    # __table_args__ = {"schema": "usd_jpy"}
     """
     Websocketから受信したデータを1sec単位で保存するためのオブジェクト
     """
