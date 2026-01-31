@@ -30,7 +30,8 @@ services:
       PREFECT_SERVER_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@prefect-db:5432/prefect
 
   worker:
-    image: prefecthq/prefect:3-python3.13
+#    image: prefecthq/prefect:3-python3.13
+    build: .
     command: prefect worker start --pool default-agent-pool
     working_dir: /app
     environment:
@@ -44,7 +45,8 @@ services:
     restart: always
 
   flow:
-    image: prefecthq/prefect:3-python3.13
+#    image: prefecthq/prefect:3-python3.13
+    build: .
     working_dir: /app
     command: tail -f /dev/null
     environment:
