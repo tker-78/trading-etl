@@ -5,7 +5,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     volumes:
-      - db-data:/var/lib/postgres/data
+      - db-data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
 
@@ -32,11 +32,16 @@ services:
   worker:
     image: prefecthq/prefect:3-python3.13
     command: prefect worker start --pool default-agent-pool
+    working_dir: /app
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
+      PYTHONPATH: /app
     depends_on:
       prefect-server:
         condition: service_started
+    volumes:
+      - ./:/app
+    restart: always
 
   flow:
     image: prefecthq/prefect:3-python3.13
@@ -51,7 +56,7 @@ services:
         condition: service_started
     volumes:
       - flow-storage:/flow-storage
-      - ./etl:/etl
+      - ./etl:/app/etl
 volumes:
   db-data:
   flow-storage:

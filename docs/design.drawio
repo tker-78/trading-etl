@@ -1,6 +1,6 @@
-<mxfile host="drawio-plugin" modified="2026-01-25T21:51:37.971Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="plMj9ekwE_h2sTE7ONUj" version="22.1.22" type="embed" pages="2">
+<mxfile host="drawio-plugin" modified="2026-01-29T21:13:58.325Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="AP2BKHDqCvu-ymZAFMAN" version="22.1.22" type="embed" pages="2">
   <diagram id="AUcg9H3SKQtR-ejoIEI9" name="system architecture">
-    <mxGraphModel dx="913" dy="644" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="385" dy="442" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -59,7 +59,7 @@
           <mxGeometry x="200" y="48" width="170" height="50" as="geometry" />
         </mxCell>
         <mxCell id="AA5g2NOt55UxYZ_jzlha-18" value="&lt;ul&gt;&lt;li&gt;Dim&lt;/li&gt;&lt;ul&gt;&lt;li&gt;date&lt;/li&gt;&lt;li&gt;currency&lt;/li&gt;&lt;li&gt;swap&lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="440" y="270" width="150" height="100" as="geometry" />
+          <mxGeometry x="465" y="270" width="150" height="100" as="geometry" />
         </mxCell>
         <mxCell id="AA5g2NOt55UxYZ_jzlha-19" value="&lt;ul&gt;&lt;li&gt;Fact&lt;/li&gt;&lt;ul&gt;&lt;li&gt;上昇率&lt;/li&gt;&lt;li&gt;各種インジケータ&lt;/li&gt;&lt;/ul&gt;&lt;/ul&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="440" y="355" width="200" height="80" as="geometry" />
@@ -141,6 +141,12 @@
         </mxCell>
         <mxCell id="15" value="3番目これ(realtime-ui)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="245" y="130" width="140" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="16" value="差分update" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="370" y="260" width="80" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="17" value="OHLC" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+          <mxGeometry x="510" y="260" width="60" height="30" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
