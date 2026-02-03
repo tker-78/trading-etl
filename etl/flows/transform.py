@@ -1,5 +1,8 @@
 from prefect import flow
+import numpy as np
+import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
+from sqlalchemy.sql.elements import quoted_name
 
 def update_usd_jpy_1m(connector):
     query = """
@@ -123,6 +126,197 @@ ON CONFLICT DO NOTHING;
     """
     connector.execute(query)
 
+
+
+
+def update_rsi_old(connector, period: int = 14):
+    """to be deleted"""
+    if not isinstance(period, int) or period < 2:
+        raise ValueError("period must be an integer >= 2")
+
+    def _normalize_rows(result):
+        if result is None:
+            return []
+        if hasattr(result, "fetchall"):
+            return result.fetchall()
+        return list(result)
+
+    def _format_timestamp(ts):
+        return ts.isoformat(sep=" ") if hasattr(ts, "isoformat") else str(ts)
+
+    last_time_result = connector.execute(
+        f"SELECT MAX(time) FROM fact_rsi WHERE period = {period};"
+    )
+    last_time_rows = _normalize_rows(last_time_result)
+    last_time = last_time_rows[0][0] if last_time_rows and last_time_rows[0] else None
+
+    if last_time:
+        query = f"""
+WITH boundary AS (
+    SELECT time
+    FROM usd_jpy_1m
+    WHERE time <= '{_format_timestamp(last_time)}'
+    ORDER BY time DESC
+    OFFSET {period - 2} LIMIT 1
+)
+SELECT time, close
+FROM usd_jpy_1m
+WHERE time >= COALESCE((SELECT time FROM boundary), '{_format_timestamp(last_time)}')
+ORDER BY time;
+        """
+    else:
+        query = """
+SELECT time, close
+FROM usd_jpy_1m
+ORDER BY time;
+        """
+
+    rows_result = connector.execute(query)
+    rows = _normalize_rows(rows_result)
+    if not rows:
+        return
+
+    closes = np.array([row[1] for row in rows], dtype=float)
+    rsi_values = talib.RSI(closes, timeperiod=period)
+
+    inserts = []
+    for (time_value, _close), rsi_value in zip(rows, rsi_values):
+        if not np.isfinite(rsi_value):
+            continue
+        if last_time and time_value <= last_time:
+            continue
+        inserts.append((time_value, float(rsi_value)))
+
+    if not inserts:
+        return
+
+    values = ",\n".join(
+        f"('{_format_timestamp(time_value)}', {period}, {rsi_value})"
+        for time_value, rsi_value in inserts
+    )
+    insert_query = f"""
+INSERT INTO fact_rsi (time, period, value)
+VALUES
+{values}
+ON CONFLICT DO NOTHING;
+    """
+    connector.execute(insert_query)
+
+def update_rsi(connector, period: int = 14, currency_pair_code: str = "USD/JPY",  timeframe_code: str = "1m" ):
+
+    def ohlc_table():
+        return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+
+
+
+    # periodのValidation
+    if not isinstance(period, int) or period < 2:
+        raise ValueError("period must be an integer >= 2")
+
+    # currency_idの取得
+    currency_id_result = connector.execute(
+        """
+        SELECT id FROM dim_currency WHERE currency_pair_code = :currency_pair_code;
+        """,
+        {"currency_pair_code":  currency_pair_code}
+    )
+    currency_id = currency_id_result.scalar()
+
+    if currency_id is None:
+        raise ValueError(f"Currency pair code {currency_pair_code} not found")
+    print("currency_id: ", currency_id)
+
+    # timeframe_idの取得
+    timeframe_id_result = connector.execute(
+        """
+        SELECT id FROM dim_timeframe WHERE timeframe_code = :timeframe_code;
+        """,
+        {"timeframe_code": timeframe_code}
+    )
+    timeframe_id = timeframe_id_result.scalar()
+    if timeframe_id is None:
+        raise ValueError(f"Timeframe code {timeframe_code} not found")
+    print("timeframe_id: ", timeframe_id)
+
+    # table_nameの取得
+    table_name = quoted_name(ohlc_table(), quote=True)
+
+    # fact_rsiの最新行を取得する
+    latest_rsi_result = connector.execute(
+        """
+        SELECT MAX(time) 
+        FROM fact_rsi 
+        WHERE period = :period
+            AND currency_id = :currency_id
+            AND timeframe_id = :timeframe_id;
+        """,
+        {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
+    )
+    latest_rsi_time = latest_rsi_result.scalar()
+    print("latest_rsi_time: ", latest_rsi_time)
+
+    # RSI計算対象行をOHLCテーブルから取得する
+    if latest_rsi_time:
+        query = f"""
+        WITH boundary AS (
+            SELECT time
+            FROM {table_name}
+            WHERE time <= :latest_rsi_time
+            ORDER BY time DESC
+            OFFSET :period + 100 LIMIT 1
+        )
+        SELECT time, close
+        FROM {table_name}
+        WHERE time >= COALESCE((SELECT time FROM boundary), :latest_rsi_time)
+        ORDER BY time;
+        """
+        rows_result = connector.execute(
+            query,
+            {"latest_rsi_time": latest_rsi_time, "period": period }
+        )
+    else:
+        query = f"""
+            SELECT time, close FROM {table_name} ORDER BY time;
+            """
+        rows_result = connector.execute(query)
+
+    rows = rows_result.all()
+    print("rows: ", rows)
+
+
+
+    # talibでRSIを計算する
+    closes = np.array([row[1] for row in rows], dtype=float)
+    print("closes: ", closes)
+    rsi_values = talib.RSI(closes, timeperiod=period)
+    print("rsi_values: ", rsi_values)
+
+
+    # fact_rsiに計算結果をInsertする
+    insert_rows = []
+
+    for (time, close), rsi_value in zip(rows, rsi_values):
+        insert_rows.append(
+            {
+                "time": time,
+                "currency_id": currency_id,
+                "timeframe_id": timeframe_id,
+                "calc_version": 0,
+                "period": period,
+                "value": float(rsi_value),
+            }
+        )
+
+
+    insert_query = """
+INSERT INTO fact_rsi (time, currency_id, timeframe_id, period, calc_version, value)
+VALUES 
+(:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
+ON CONFLICT DO NOTHING;
+    """
+    connector.execute(insert_query, insert_rows)
+
+
 @flow
 def transform(block_name: str = "forex-connector"):
     with SqlAlchemyConnector.load(block_name) as conn:
@@ -132,6 +326,12 @@ def transform(block_name: str = "forex-connector"):
         update_usd_jpy_1h(conn)
         update_usd_jpy_4h(conn)
 
-if __name__ == "__main__":
-    transform()
+@flow
+def indicator(block_name: str = "forex-connector"):
+    with SqlAlchemyConnector.load(block_name) as conn:
+        update_rsi(conn)
 
+
+if __name__ == "__main__":
+    # transform()
+    indicator()

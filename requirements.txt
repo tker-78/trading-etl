@@ -1,2 +1,8 @@
 prefect_sqlalchemy
 psycopg2-binary
+
+prefect
+numpy
+ta-lib
+
+sqlalchemy

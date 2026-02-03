@@ -58,7 +58,7 @@ Backend は **唯一の業務ロジック実行点** であり、UI や BI は�
 
 #### データ内容
 
-* 1min OHLC（最小粒度）
+* 1sec tickerデータ(time, ask, bid)
 * Tick データは保持しない、または TTL 付きで限定保持
 
 #### ポリシー
@@ -99,6 +99,7 @@ Backend は **唯一の業務ロジック実行点** であり、UI や BI は�
 
 * RealtimeDB → 集約 OHLC + 指標
 * TransactionDB → 取引実績
+* Prefectを用いてETLで投入する
 
 #### モデリング方針
 
@@ -138,7 +139,7 @@ Backend は **唯一の業務ロジック実行点** であり、UI や BI は�
 ### RealtimeDB → DWH
 
 * 1min OHLC を入力
-* 1h / 4h / 1d / 1w OHLC を再集約
+* 5min / 30min / 1h / 4h / 1d / 1w OHLC を再集約
 * インジケータを計算
 * 再現可能な定義（window, parameter）をメタデータとして保持
 
@@ -166,7 +167,12 @@ Backend は **唯一の業務ロジック実行点** であり、UI や BI は�
 
 ---
 
-## 6. 設計上の重要ポイント（まとめ）
+## 6. 考慮する制約
+
+**todo**
+
+
+## 7. 設計上の重要ポイント（まとめ）
 
 * Realtime / Transaction / Analytics を混ぜない
 * 粒度（grain）を壊さない
@@ -181,3 +187,8 @@ Backend は **唯一の業務ロジック実行点** であり、UI や BI は�
 * 将来的な拡張（指標・時間軸・戦略追加）が容易
 
 なトレーディングアプリケーションを実現する。
+
+
+
+
+
