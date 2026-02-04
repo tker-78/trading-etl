@@ -128,86 +128,11 @@ ON CONFLICT DO NOTHING;
 
 
 
-
-def update_rsi_old(connector, period: int = 14):
-    """to be deleted"""
-    if not isinstance(period, int) or period < 2:
-        raise ValueError("period must be an integer >= 2")
-
-    def _normalize_rows(result):
-        if result is None:
-            return []
-        if hasattr(result, "fetchall"):
-            return result.fetchall()
-        return list(result)
-
-    def _format_timestamp(ts):
-        return ts.isoformat(sep=" ") if hasattr(ts, "isoformat") else str(ts)
-
-    last_time_result = connector.execute(
-        f"SELECT MAX(time) FROM fact_rsi WHERE period = {period};"
-    )
-    last_time_rows = _normalize_rows(last_time_result)
-    last_time = last_time_rows[0][0] if last_time_rows and last_time_rows[0] else None
-
-    if last_time:
-        query = f"""
-WITH boundary AS (
-    SELECT time
-    FROM usd_jpy_1m
-    WHERE time <= '{_format_timestamp(last_time)}'
-    ORDER BY time DESC
-    OFFSET {period - 2} LIMIT 1
-)
-SELECT time, close
-FROM usd_jpy_1m
-WHERE time >= COALESCE((SELECT time FROM boundary), '{_format_timestamp(last_time)}')
-ORDER BY time;
-        """
-    else:
-        query = """
-SELECT time, close
-FROM usd_jpy_1m
-ORDER BY time;
-        """
-
-    rows_result = connector.execute(query)
-    rows = _normalize_rows(rows_result)
-    if not rows:
-        return
-
-    closes = np.array([row[1] for row in rows], dtype=float)
-    rsi_values = talib.RSI(closes, timeperiod=period)
-
-    inserts = []
-    for (time_value, _close), rsi_value in zip(rows, rsi_values):
-        if not np.isfinite(rsi_value):
-            continue
-        if last_time and time_value <= last_time:
-            continue
-        inserts.append((time_value, float(rsi_value)))
-
-    if not inserts:
-        return
-
-    values = ",\n".join(
-        f"('{_format_timestamp(time_value)}', {period}, {rsi_value})"
-        for time_value, rsi_value in inserts
-    )
-    insert_query = f"""
-INSERT INTO fact_rsi (time, period, value)
-VALUES
-{values}
-ON CONFLICT DO NOTHING;
-    """
-    connector.execute(insert_query)
-
 def update_rsi(connector, period: int = 14, currency_pair_code: str = "USD/JPY",  timeframe_code: str = "1m" ):
+    _calc_version = 1
 
     def ohlc_table():
         return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
-
-
 
     # periodのValidation
     if not isinstance(period, int) or period < 2:
@@ -301,12 +226,11 @@ def update_rsi(connector, period: int = 14, currency_pair_code: str = "USD/JPY",
                 "time": time,
                 "currency_id": currency_id,
                 "timeframe_id": timeframe_id,
-                "calc_version": 0,
+                "calc_version": _calc_version,
                 "period": period,
                 "value": float(rsi_value),
             }
         )
-
 
     insert_query = """
 INSERT INTO fact_rsi (time, currency_id, timeframe_id, period, calc_version, value)
@@ -330,6 +254,7 @@ def transform(block_name: str = "forex-connector"):
 def indicator(block_name: str = "forex-connector"):
     with SqlAlchemyConnector.load(block_name) as conn:
         update_rsi(conn)
+        update_rsi(conn, timeframe_code="5m")
 
 
 if __name__ == "__main__":
