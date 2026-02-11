@@ -258,5 +258,5 @@ def indicator(block_name: str = "forex-connector"):
 
 
 if __name__ == "__main__":
-    # transform()
+    transform()
     indicator()

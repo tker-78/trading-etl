@@ -1,6 +1,6 @@
-CREATE DATABASE forex;
+-- CREATE DATABASE forex;
 
-DROP TABLE ticker_usd_jpy;
+DROP TABLE IF EXISTS ticker_usd_jpy;
 
 CREATE TABLE IF NOT EXISTS ticker_usd_jpy (
     time TIMESTAMP PRIMARY KEY,
