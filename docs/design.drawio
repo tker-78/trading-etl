@@ -1,6 +1,6 @@
-<mxfile host="drawio-plugin" modified="2026-01-31T06:50:45.019Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="Z-mfY1Ky0h61UhVrGVif" version="22.1.22" type="embed" pages="2">
+<mxfile host="drawio-plugin" modified="2026-02-11T22:00:30.741Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="-dC9puTcaCDDyiHoMeOh" version="22.1.22" type="embed" pages="2">
   <diagram id="AUcg9H3SKQtR-ejoIEI9" name="system architecture">
-    <mxGraphModel dx="1046" dy="773" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="710" dy="644" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -146,9 +146,9 @@
           <mxGeometry x="370" y="260" width="80" height="30" as="geometry" />
         </mxCell>
         <mxCell id="17" value="OHLC" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
-          <mxGeometry x="510" y="260" width="60" height="30" as="geometry" />
+          <mxGeometry x="510" y="270" width="60" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="18" value="4番目これ(realtime表示)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" vertex="1" parent="1">
+        <mxCell id="18" value="4番目これ(realtime表示)" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
           <mxGeometry x="245" y="140" width="150" height="30" as="geometry" />
         </mxCell>
       </root>

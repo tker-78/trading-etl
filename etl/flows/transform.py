@@ -3,6 +3,7 @@ import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
+from decimal import Decimal, ROUND_HALF_UP
 
 def update_usd_jpy_1m(connector):
     query = """
@@ -221,6 +222,7 @@ def update_rsi(connector, period: int = 14, currency_pair_code: str = "USD/JPY",
     insert_rows = []
 
     for (time, close), rsi_value in zip(rows, rsi_values):
+        # precise_value = Decimal(str(rsi_value)).quantize(Decimal("0.0000"))
         insert_rows.append(
             {
                 "time": time,
