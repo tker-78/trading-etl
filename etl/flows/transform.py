@@ -242,6 +242,54 @@ ON CONFLICT DO NOTHING;
     """
     connector.execute(insert_query, insert_rows)
 
+def update_rsi_v2(connector,
+                  period: int = 14,
+                  currency_pair_code: str = "USD/JPY",
+                  timeframe_code: str = "1m"):
+    _calc_version = 0
+
+    def ohlc_table():
+        return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+
+    def _get_id() -> tuple[int, int]:
+        currency_id_result = connector.execute(
+            """
+            SELECT id FROM dim_currency WHERE currency_pair_code = :currency_pair_code;
+            """,
+            {"currency_pair_code": currency_pair_code}
+        )
+        currency_id = currency_id_result.scalar()
+        if currency_id is None:
+            raise ValueError(f"Currency pair code {currency_pair_code} not found")
+
+        timeframe_id_result = connector.execute(
+            """
+            SELECT id FROM dim_timeframe WHERE timeframe_code = :timeframe_code;
+            """,
+            {"timeframe_code": timeframe_code}
+        )
+        timeframe_id = timeframe_id_result.scalar()
+        if timeframe_id is None:
+            raise ValueError(f"Timeframe code {timeframe_code} not found")
+        return currency_id, timeframe_id
+
+    table_name = quoted_name(ohlc_table(), quote=True)
+
+    currency_id, timeframe_id = _get_id()
+
+    latest_rsi_result = connector.execute(
+        """
+        SELECT MAX(time)
+        FROM fact_rsi
+        WHERE period = :period
+            AND currency_id = :currency_id
+            AND timeframe_id = :timeframe_id;
+        """,
+        {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
+    )
+    latest_rsi_time = latest_rsi_result.scalar()
+    print("latest_rsi_time: ", latest_rsi_time)
+
 
 @flow
 def transform(block_name: str = "forex-connector"):
@@ -257,8 +305,9 @@ def indicator(block_name: str = "forex-connector"):
     with SqlAlchemyConnector.load(block_name) as conn:
         update_rsi(conn)
         update_rsi(conn, timeframe_code="5m")
+        update_rsi_v2(conn)
 
 
 if __name__ == "__main__":
-    transform()
+    # transform()
     indicator()
