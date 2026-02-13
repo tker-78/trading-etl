@@ -288,7 +288,66 @@ def update_rsi_v2(connector,
         {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
     )
     latest_rsi_time = latest_rsi_result.scalar()
-    print("latest_rsi_time: ", latest_rsi_time)
+
+    # rsi計算対象行をOHLCテーブルから取得する(time, closeのみ)
+    # rsi計算に必要な行数を確保する。(対象行全体でNullが入らないようにするにはPeriod * 2のレコード数が必要)
+    if latest_rsi_time:
+        query = f"""
+        WITH boundary AS (
+        SELECT time
+        FROM {table_name}
+        WHERE time <= :latest_rsi_time
+        ORDER BY time DESC
+        OFFSET :period * 2 LIMIT 1
+        )
+        SELECT time, close
+        FROM {table_name}
+        WHERE time >= COALESCE((SELECT time FROM boundary), :latest_rsi_time)
+        ORDER BY time;
+        """
+
+        query_result = connector.execute(query, {"period": period, "latest_rsi_time": latest_rsi_time})
+    else:
+        query = f"""
+        SELECT time, close
+        FROM {table_name}
+        ORDER BY time;
+        """
+        query_result = connector.execute(query)
+
+    rows = query_result.all()
+
+    # talibでrsiを計算する
+    closes = np.array([row[1] for row in rows], dtype=float)
+    rsi_values = talib.RSI(closes, timeperiod=period)
+
+    # for debug
+    # values = { time: rsi_values for (time, close), rsi_values in zip(rows, rsi_values)}
+    # print(values)
+
+    # fact_rsiに計算結果をinsertする
+    insert_rows = []
+
+    for (time, close), rsi_value in zip(rows, rsi_values):
+        insert_rows.append(
+            {
+                "time": time,
+                "currency_id": currency_id,
+                "timeframe_id": timeframe_id,
+                "calc_version": _calc_version,
+                "period": period,
+                "value": float(rsi_value),
+            }
+        )
+
+    print(insert_rows)
+
+    insert_query = """
+    INSERT INTO fact_rsi (time, currency_id, timeframe_id, period, calc_version, value)
+    VALUES (:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
+    ON CONFLICT DO NOTHING;
+    """
+    connector.execute(insert_query, insert_rows)
 
 
 @flow
@@ -303,11 +362,11 @@ def transform(block_name: str = "forex-connector"):
 @flow
 def indicator(block_name: str = "forex-connector"):
     with SqlAlchemyConnector.load(block_name) as conn:
-        update_rsi(conn)
-        update_rsi(conn, timeframe_code="5m")
+        # update_rsi(conn)
+        # update_rsi(conn, timeframe_code="5m")
         update_rsi_v2(conn)
 
 
 if __name__ == "__main__":
-    # transform()
+    transform()
     indicator()
