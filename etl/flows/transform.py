@@ -128,121 +128,7 @@ ON CONFLICT DO NOTHING;
     connector.execute(query)
 
 
-
-def update_rsi(connector, period: int = 14, currency_pair_code: str = "USD/JPY",  timeframe_code: str = "1m" ):
-    _calc_version = 1
-
-    def ohlc_table():
-        return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
-
-    # periodのValidation
-    if not isinstance(period, int) or period < 2:
-        raise ValueError("period must be an integer >= 2")
-
-    # currency_idの取得
-    currency_id_result = connector.execute(
-        """
-        SELECT id FROM dim_currency WHERE currency_pair_code = :currency_pair_code;
-        """,
-        {"currency_pair_code":  currency_pair_code}
-    )
-    currency_id = currency_id_result.scalar()
-
-    if currency_id is None:
-        raise ValueError(f"Currency pair code {currency_pair_code} not found")
-    print("currency_id: ", currency_id)
-
-    # timeframe_idの取得
-    timeframe_id_result = connector.execute(
-        """
-        SELECT id FROM dim_timeframe WHERE timeframe_code = :timeframe_code;
-        """,
-        {"timeframe_code": timeframe_code}
-    )
-    timeframe_id = timeframe_id_result.scalar()
-    if timeframe_id is None:
-        raise ValueError(f"Timeframe code {timeframe_code} not found")
-    print("timeframe_id: ", timeframe_id)
-
-    # table_nameの取得
-    table_name = quoted_name(ohlc_table(), quote=True)
-
-    # fact_rsiの最新行を取得する
-    latest_rsi_result = connector.execute(
-        """
-        SELECT MAX(time) 
-        FROM fact_rsi 
-        WHERE period = :period
-            AND currency_id = :currency_id
-            AND timeframe_id = :timeframe_id;
-        """,
-        {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
-    )
-    latest_rsi_time = latest_rsi_result.scalar()
-    print("latest_rsi_time: ", latest_rsi_time)
-
-    # RSI計算対象行をOHLCテーブルから取得する
-    if latest_rsi_time:
-        query = f"""
-        WITH boundary AS (
-            SELECT time
-            FROM {table_name}
-            WHERE time <= :latest_rsi_time
-            ORDER BY time DESC
-            OFFSET :period + 100 LIMIT 1
-        )
-        SELECT time, close
-        FROM {table_name}
-        WHERE time >= COALESCE((SELECT time FROM boundary), :latest_rsi_time)
-        ORDER BY time;
-        """
-        rows_result = connector.execute(
-            query,
-            {"latest_rsi_time": latest_rsi_time, "period": period }
-        )
-    else:
-        query = f"""
-            SELECT time, close FROM {table_name} ORDER BY time;
-            """
-        rows_result = connector.execute(query)
-
-    rows = rows_result.all()
-    print("rows: ", rows)
-
-
-
-    # talibでRSIを計算する
-    closes = np.array([row[1] for row in rows], dtype=float)
-    print("closes: ", closes)
-    rsi_values = talib.RSI(closes, timeperiod=period)
-    print("rsi_values: ", rsi_values)
-
-
-    # fact_rsiに計算結果をInsertする
-    insert_rows = []
-
-    for (time, close), rsi_value in zip(rows, rsi_values):
-        # precise_value = Decimal(str(rsi_value)).quantize(Decimal("0.0000"))
-        insert_rows.append(
-            {
-                "time": time,
-                "currency_id": currency_id,
-                "timeframe_id": timeframe_id,
-                "calc_version": _calc_version,
-                "period": period,
-                "value": float(rsi_value),
-            }
-        )
-
-    insert_query = """
-INSERT INTO fact_rsi (time, currency_id, timeframe_id, period, calc_version, value)
-VALUES 
-(:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
-ON CONFLICT DO NOTHING;
-    """
-    connector.execute(insert_query, insert_rows)
-
-def update_rsi_v2(connector,
+def update_rsi(connector,
                   period: int = 14,
                   currency_pair_code: str = "USD/JPY",
                   timeframe_code: str = "1m"):
@@ -349,6 +235,153 @@ def update_rsi_v2(connector,
     """
     connector.execute(insert_query, insert_rows)
 
+def update_sma(connector,
+               period: int = 14,
+               currency_pair_code: str = "USD/JPY",
+               timeframe_code: str = "1m"):
+
+    _calc_version = 0
+
+    table_name = quoted_name(ohlc_table(currency_pair_code, timeframe_code), quote=True)
+
+    currency_id, timeframe_id = get_id(connector, currency_pair_code, timeframe_code)
+
+    last_sma_result = connector.execute(
+        f"""
+        SELECT MAX(time)
+        FROM fact_sma
+        WHERE period = :period
+        AND currency_id = :currency_id
+        AND timeframe_id = :timeframe_id;
+        """, {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
+    )
+    last_sma_time = last_sma_result.scalar()
+
+    # 計算対象行を抽出する
+    if last_sma_time:
+        query = f"""
+        WITH boundary AS (
+        SELECT time
+        FROM {table_name}
+        WHERE time <= :last_sma_time
+        ORDER BY time DESC
+        OFFSET :period * 2 LIMIT 1
+        )
+        SELECT time, close
+        FROM {table_name}
+        WHERE time >= COALESCE((SELECT time FROM boundary), :last_sma_time)
+        ORDER BY time;
+        """
+        query_result = connector.execute(query, {"period": period, "last_sma_time": last_sma_time})
+    else:
+        query = f"""
+        SELECT time, close
+        FROM {table_name}
+        ORDER BY time;
+        """
+        query_result = connector.execute(query)
+
+    rows = query_result.all()
+
+    # talibでSMAを計算する
+    closes = np.array([row[1] for row in rows ], dtype=float)
+    sma_values = talib.SMA(closes, timeperiod=period)
+
+    # fact_smaに計算結果をinsertする
+    insert_rows = []
+
+    for (time, close), sma_value in zip(rows, sma_values):
+        insert_rows.append(
+            {
+                "time": time,
+                "currency_id": currency_id,
+                "timeframe_id": timeframe_id,
+                "period": period,
+                "calc_version": _calc_version,
+                "value": float(sma_value),
+            }
+        )
+
+    insert_query = """
+    INSERT INTO fact_sma (time, currency_id, timeframe_id, period, calc_version, value)
+    VALUES (:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
+    ON CONFLICT DO NOTHING;
+    """
+    connector.execute(insert_query, insert_rows)
+
+
+
+def ohlc_table(currency_pair_code: str, timeframe_code: str):
+    return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+
+
+def get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
+    currency_id_result = connector.execute(
+        """
+        SELECT id
+        FROM dim_currency
+        WHERE currency_pair_code = :currency_pair_code;
+        """,
+        {"currency_pair_code": currency_pair_code}
+    )
+    currency_id = currency_id_result.scalar()
+    if currency_id is None:
+        raise ValueError(f"Currency pair code {currency_pair_code} not found")
+
+    timeframe_id_result = connector.execute(
+        """
+        SELECT id
+        FROM dim_timeframe
+        WHERE timeframe_code = :timeframe_code;
+        """,
+        {"timeframe_code": timeframe_code}
+    )
+    timeframe_id = timeframe_id_result.scalar()
+    if timeframe_id is None:
+        raise ValueError(f"Timeframe code {timeframe_code} not found")
+    return currency_id, timeframe_id
+
+
+def insert_sma_golden_cross(connector):
+    query = """
+    WITH sma AS (
+    SELECT
+      s.time,
+      s.currency_id,
+      s.timeframe_id,
+      s.calc_version,
+      s.value AS short_value,
+      l.value AS long_value
+    FROM fact_sma s
+    JOIN fact_sma l
+      ON s.time = l.time
+     AND s.currency_id = l.currency_id
+     AND s.timeframe_id = l.timeframe_id
+     AND s.calc_version = l.calc_version
+    WHERE s.period = :short_period
+      AND l.period = :long_period
+  ),
+  flag AS (
+    SELECT
+      *,
+      LAG(short_value) OVER (
+        PARTITION BY currency_id, timeframe_id, calc_version
+        ORDER BY time
+      ) AS prev_short,
+      LAG(long_value) OVER (
+        PARTITION BY currency_id, timeframe_id, calc_version
+        ORDER BY time
+      ) AS prev_long
+    FROM sma
+  )
+  SELECT
+    time, currency_id, timeframe_id, calc_version,
+    short_value, long_value
+  FROM flag
+  WHERE prev_short <= prev_long
+    AND short_value > long_value;
+    
+    """
 
 @flow
 def transform(block_name: str = "forex-connector"):
@@ -364,7 +397,12 @@ def indicator(block_name: str = "forex-connector"):
     with SqlAlchemyConnector.load(block_name) as conn:
         # update_rsi(conn)
         # update_rsi(conn, timeframe_code="5m")
-        update_rsi_v2(conn)
+        update_rsi(conn, timeframe_code="1m")
+        update_rsi(conn, timeframe_code="5m")
+        update_rsi(conn, timeframe_code="30m")
+        update_rsi(conn, timeframe_code="1h")
+        update_rsi(conn, timeframe_code="4h")
+        update_sma(conn)
 
 
 if __name__ == "__main__":
