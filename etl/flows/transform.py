@@ -3,6 +3,7 @@ import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
+from etl.flows.config import RSI_TASK_DEFAULT_PARAMS, RSI_FLOW_DEFAULT_PARAMS, SMA_TASK_DEFAULT_PARAMS, SMA_FLOW_DEFAULT_PARAMS
 
 
 ##### helpers: start ########
@@ -36,7 +37,7 @@ def get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int
         raise ValueError(f"Timeframe code {timeframe_code} not found")
     return currency_id, timeframe_id
 
-##### helpers: start ########
+##### helpers: end ########
 
 
 
@@ -171,15 +172,9 @@ ON CONFLICT DO NOTHING;
 
 ######## update indicators: start #############
 
-RSI_DEFAULT_PARAMS = {
-    "period": 14,
-    "currency_pair_code": "USD/JPY",
-    "timeframe_code": "1m",
-}
-
 
 def _build_rsi_params(overrides: dict | None = None) -> dict:
-    return {**RSI_DEFAULT_PARAMS, **(overrides or {})}
+    return {**RSI_TASK_DEFAULT_PARAMS, **(overrides or {})}
 
 
 def update_rsi(connector,
@@ -267,21 +262,16 @@ def update_rsi(connector,
 
 
 
-SMA_DEFAULT_PARAMS = {
-    "period": 14,
-    "currency_pair_code": "USD/JPY",
-    "timeframe_code": "1m",
-}
 
 
 def _build_sma_params(overrides: dict | None = None) -> dict:
-    return {**SMA_DEFAULT_PARAMS, **(overrides or {})}
+    return {**SMA_TASK_DEFAULT_PARAMS, **(overrides or {})}
 
 def update_sma(connector,
                *,
-               period: int = 14,
-               currency_pair_code: str = "USD/JPY",
-               timeframe_code: str = "1m"
+               period: int,
+               currency_pair_code: str,
+               timeframe_code: str
                ):
 
     _calc_version = 0
@@ -451,34 +441,37 @@ def transform(block_name: str = "forex-connector"):
     t1 = update_usd_jpy_1m_task(block_name)
 
     # 他は並列で実行
-    update_usd_jpy_5m_task.submit(block_name, wait_for=[t1] )
-    update_usd_jpy_30m_task.submit(block_name, wait_for=[t1])
-    update_usd_jpy_1h_task.submit(block_name, wait_for=[t1])
-    update_usd_jpy_4h_task.submit(block_name, wait_for=[t1])
+    update_usd_jpy_5m_task.submit(block_name)
+    update_usd_jpy_30m_task.submit(block_name)
+    update_usd_jpy_1h_task.submit(block_name)
+    update_usd_jpy_4h_task.submit(block_name)
 
 @flow
 def indicator(block_name: str = "forex-connector"):
     # basic timeframes
-    timeframes = ["1m", "5m", "30m", "1h", "4h"]
+    # timeframes = ["1m", "5m", "30m", "1h", "4h"]
 
     # call of rsi
+    rsi_periods = RSI_FLOW_DEFAULT_PARAMS.get("periods")
+    rsi_timeframes = RSI_FLOW_DEFAULT_PARAMS.get("timeframes")
     rsi_params = _build_rsi_params()
-    for timeframe_code in timeframes:
-        update_rsi_task.submit(
-            block_name,
-            rsi_params={**rsi_params, "timeframe_code": timeframe_code},
-        )
+    for timeframe_code in rsi_timeframes:
+        for period in rsi_periods:
+            update_rsi_task.submit(
+                block_name,
+                rsi_params={**rsi_params, "period": period, "timeframe_code": timeframe_code},
+            )
 
     # call of sma
+    sma_periods = SMA_FLOW_DEFAULT_PARAMS.get("periods")
+    sma_timeframes = SMA_FLOW_DEFAULT_PARAMS.get("timeframes")
     sma_params = _build_sma_params()
-    periods = [14, 28, 56]
-    for timeframe_code in timeframes:
-        for period in periods:
+    for timeframe_code in sma_timeframes:
+        for period in sma_periods:
             update_sma_task.submit(
                 block_name,
                 sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
             )
-
 
 if __name__ == "__main__":
     transform()
