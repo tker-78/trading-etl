@@ -1,8 +1,43 @@
-from prefect import flow
+from prefect import flow, task
 import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
+
+
+##### helpers: start ########
+def ohlc_table(currency_pair_code: str, timeframe_code: str):
+    return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+
+
+def get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
+    currency_id_result = connector.execute(
+        """
+        SELECT id
+        FROM dim_currency
+        WHERE currency_pair_code = :currency_pair_code;
+        """,
+        {"currency_pair_code": currency_pair_code}
+    )
+    currency_id = currency_id_result.scalar()
+    if currency_id is None:
+        raise ValueError(f"Currency pair code {currency_pair_code} not found")
+
+    timeframe_id_result = connector.execute(
+        """
+        SELECT id
+        FROM dim_timeframe
+        WHERE timeframe_code = :timeframe_code;
+        """,
+        {"timeframe_code": timeframe_code}
+    )
+    timeframe_id = timeframe_id_result.scalar()
+    if timeframe_id is None:
+        raise ValueError(f"Timeframe code {timeframe_code} not found")
+    return currency_id, timeframe_id
+
+##### helpers: start ########
+
 
 
 
@@ -136,40 +171,28 @@ ON CONFLICT DO NOTHING;
 
 ######## update indicators: start #############
 
+RSI_DEFAULT_PARAMS = {
+    "period": 14,
+    "currency_pair_code": "USD/JPY",
+    "timeframe_code": "1m",
+}
+
+
+def _build_rsi_params(overrides: dict | None = None) -> dict:
+    return {**RSI_DEFAULT_PARAMS, **(overrides or {})}
+
+
 def update_rsi(connector,
-                  period: int = 14,
-                  currency_pair_code: str = "USD/JPY",
-                  timeframe_code: str = "1m"):
+               *,
+               period: int,
+               currency_pair_code: str,
+               timeframe_code: str
+               ):
     _calc_version = 0
 
-    def ohlc_table():
-        return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+    table_name = quoted_name(ohlc_table(currency_pair_code, timeframe_code), quote=True)
 
-    def _get_id() -> tuple[int, int]:
-        currency_id_result = connector.execute(
-            """
-            SELECT id FROM dim_currency WHERE currency_pair_code = :currency_pair_code;
-            """,
-            {"currency_pair_code": currency_pair_code}
-        )
-        currency_id = currency_id_result.scalar()
-        if currency_id is None:
-            raise ValueError(f"Currency pair code {currency_pair_code} not found")
-
-        timeframe_id_result = connector.execute(
-            """
-            SELECT id FROM dim_timeframe WHERE timeframe_code = :timeframe_code;
-            """,
-            {"timeframe_code": timeframe_code}
-        )
-        timeframe_id = timeframe_id_result.scalar()
-        if timeframe_id is None:
-            raise ValueError(f"Timeframe code {timeframe_code} not found")
-        return currency_id, timeframe_id
-
-    table_name = quoted_name(ohlc_table(), quote=True)
-
-    currency_id, timeframe_id = _get_id()
+    currency_id, timeframe_id = get_id(connector, currency_pair_code, timeframe_code)
 
     latest_rsi_result = connector.execute(
         """
@@ -234,8 +257,6 @@ def update_rsi(connector,
             }
         )
 
-    print(insert_rows)
-
     insert_query = """
     INSERT INTO fact_rsi (time, currency_id, timeframe_id, period, calc_version, value)
     VALUES (:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
@@ -243,10 +264,25 @@ def update_rsi(connector,
     """
     connector.execute(insert_query, insert_rows)
 
+
+
+
+SMA_DEFAULT_PARAMS = {
+    "period": 14,
+    "currency_pair_code": "USD/JPY",
+    "timeframe_code": "1m",
+}
+
+
+def _build_sma_params(overrides: dict | None = None) -> dict:
+    return {**SMA_DEFAULT_PARAMS, **(overrides or {})}
+
 def update_sma(connector,
+               *,
                period: int = 14,
                currency_pair_code: str = "USD/JPY",
-               timeframe_code: str = "1m"):
+               timeframe_code: str = "1m"
+               ):
 
     _calc_version = 0
 
@@ -317,38 +353,6 @@ def update_sma(connector,
     """
     connector.execute(insert_query, insert_rows)
 
-
-
-def ohlc_table(currency_pair_code: str, timeframe_code: str):
-    return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
-
-
-def get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
-    currency_id_result = connector.execute(
-        """
-        SELECT id
-        FROM dim_currency
-        WHERE currency_pair_code = :currency_pair_code;
-        """,
-        {"currency_pair_code": currency_pair_code}
-    )
-    currency_id = currency_id_result.scalar()
-    if currency_id is None:
-        raise ValueError(f"Currency pair code {currency_pair_code} not found")
-
-    timeframe_id_result = connector.execute(
-        """
-        SELECT id
-        FROM dim_timeframe
-        WHERE timeframe_code = :timeframe_code;
-        """,
-        {"timeframe_code": timeframe_code}
-    )
-    timeframe_id = timeframe_id_result.scalar()
-    if timeframe_id is None:
-        raise ValueError(f"Timeframe code {timeframe_code} not found")
-    return currency_id, timeframe_id
-
 ######## update indicators: end #############
 
 
@@ -398,26 +402,82 @@ def insert_sma_golden_cross(connector):
 
 ######## insert signals based on a strategy: end #############
 
-@flow
-def transform(block_name: str = "forex-connector"):
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_usd_jpy_1m_task(block_name: str):
     with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_1m(conn)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_usd_jpy_5m_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_5m(conn)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_usd_jpy_30m_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_30m(conn)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_usd_jpy_1h_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_1h(conn)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_usd_jpy_4h_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_4h(conn)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_rsi_task(block_name: str,
+                    rsi_params: dict | None = None,
+                    ):
+    params = _build_rsi_params(rsi_params)
+    with SqlAlchemyConnector.load(block_name) as conn:
+        update_rsi(conn, **params)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_sma_task(block_name: str,
+                    sma_params: dict | None = None,
+                    ):
+    params = _build_sma_params(sma_params)
+    with SqlAlchemyConnector.load(block_name) as conn:
+        update_sma(conn, **params)
+
+
+
+@flow
+def transform(block_name: str = "forex-connector"):
+    # 最初に実行
+    t1 = update_usd_jpy_1m_task(block_name)
+
+    # 他は並列で実行
+    update_usd_jpy_5m_task.submit(block_name, wait_for=[t1] )
+    update_usd_jpy_30m_task.submit(block_name, wait_for=[t1])
+    update_usd_jpy_1h_task.submit(block_name, wait_for=[t1])
+    update_usd_jpy_4h_task.submit(block_name, wait_for=[t1])
 
 @flow
 def indicator(block_name: str = "forex-connector"):
-    with SqlAlchemyConnector.load(block_name) as conn:
-        # update_rsi(conn)
-        # update_rsi(conn, timeframe_code="5m")
-        update_rsi(conn, timeframe_code="1m")
-        update_rsi(conn, timeframe_code="5m")
-        update_rsi(conn, timeframe_code="30m")
-        update_rsi(conn, timeframe_code="1h")
-        update_rsi(conn, timeframe_code="4h")
-        update_sma(conn)
+    # basic timeframes
+    timeframes = ["1m", "5m", "30m", "1h", "4h"]
+
+    # call of rsi
+    rsi_params = _build_rsi_params()
+    for timeframe_code in timeframes:
+        update_rsi_task.submit(
+            block_name,
+            rsi_params={**rsi_params, "timeframe_code": timeframe_code},
+        )
+
+    # call of sma
+    sma_params = _build_sma_params()
+    periods = [14, 28, 56]
+    for timeframe_code in timeframes:
+        for period in periods:
+            update_sma_task.submit(
+                block_name,
+                sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
+            )
 
 
 if __name__ == "__main__":
