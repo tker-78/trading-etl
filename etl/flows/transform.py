@@ -3,7 +3,10 @@ import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
-from decimal import Decimal, ROUND_HALF_UP
+
+
+
+######### update OHLC tables ##############
 
 def update_usd_jpy_1m(connector):
     query = """
@@ -127,6 +130,11 @@ ON CONFLICT DO NOTHING;
     """
     connector.execute(query)
 
+######### update OHLC tables: end ##############
+
+
+
+######## update indicators: start #############
 
 def update_rsi(connector,
                   period: int = 14,
@@ -341,6 +349,11 @@ def get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int
         raise ValueError(f"Timeframe code {timeframe_code} not found")
     return currency_id, timeframe_id
 
+######## update indicators: end #############
+
+
+
+######## insert signals based on a strategy: start #############
 
 def insert_sma_golden_cross(connector):
     query = """
@@ -382,6 +395,8 @@ def insert_sma_golden_cross(connector):
     AND short_value > long_value;
     
     """
+
+######## insert signals based on a strategy: end #############
 
 @flow
 def transform(block_name: str = "forex-connector"):
