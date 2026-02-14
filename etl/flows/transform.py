@@ -346,8 +346,25 @@ def update_sma(connector,
 
 ######## insert signals based on a strategy: start #############
 
-def insert_sma_golden_cross(connector):
+def insert_sma_golden_cross(connector,
+                            *,
+                            short_period: int,
+                            long_period: int
+):
+    # **todo**
+    # timeframeを指定する
     query = """
+    INSERT INTO fact_buysell_events (
+        event_datetime, 
+        currency_id, 
+        price, 
+        quantity, 
+        event_type, 
+        trigger_indicator_name, 
+        trigger_indicator_value, 
+        trigger_indicator_timeframe, 
+        trigger_indicator_period
+    )
     WITH sma AS (
     SELECT
       s.time,
@@ -379,13 +396,22 @@ def insert_sma_golden_cross(connector):
     FROM sma
   )
   SELECT
-    time, currency_id, timeframe_id, calc_version,
-    short_value, long_value
+    time, 
+    currency_id, 
+    short_value AS price, 
+    0 AS quantity,
+    'BUY' AS event_type, 
+    'SMA' AS trigger_indicator_name,
+    short_value AS trigger_indicator_value, 
+    timeframe_id AS trigger_indicator_timeframe, 
+    :short_period AS trigger_indicator_period
   FROM flag
   WHERE prev_short <= prev_long
-    AND short_value > long_value;
-    
+    AND short_value > long_value
+  ON CONFLICT DO NOTHING;
+
     """
+    connector.execute(query, {"short_period": 14, "long_period": 28})
 
 ######## insert signals based on a strategy: end #############
 
@@ -430,6 +456,11 @@ def update_sma_task(block_name: str,
     with SqlAlchemyConnector.load(block_name) as conn:
         update_sma(conn, **params)
 
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def insert_golden_cross_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
+        insert_sma_golden_cross(conn)
+
 
 
 @flow
@@ -468,15 +499,17 @@ def indicator(block_name: str = "forex-connector"):
     sma_timeframes = SMA_FLOW_DEFAULT_PARAMS.get("timeframes")
     sma_params = _build_sma_params()
     sma_futures = []
-    for timeframe_code in sma_timeframes:
-        for period in sma_periods:
-            f = update_sma_task.submit(
-                block_name,
-                sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
-            )
-            sma_futures.append(f)
+    # for timeframe_code in sma_timeframes:
+    #     for period in sma_periods:
+    #         f = update_sma_task.submit(
+    #             block_name,
+    #             sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
+    #         )
+    #         sma_futures.append(f)
 
-    return rsi_futures + sma_futures
+    insert_golden_cross_task.submit(block_name)
+
+    # return rsi_futures + sma_futures
 
 if __name__ == "__main__":
     transform()
