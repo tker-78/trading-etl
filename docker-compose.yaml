@@ -46,10 +46,10 @@ services:
     restart: always
 
   flow:
-#    image: prefecthq/prefect:3-python3.13
     build: .
     working_dir: /app
-    command: tail -f /dev/null
+#    command: tail -f /dev/null
+    command: python gmo/ws-connection.py
     environment:
       PREFECT_API_URL: http://prefect-server:4200/api
       PREFECT_LOCAL_STORAGE_PATH: /flow-storage
@@ -60,6 +60,8 @@ services:
     volumes:
       - flow-storage:/flow-storage
       - ./etl:/app/etl
+      - ./gmo:/app/gmo
+      - ./database:/app/database
 volumes:
   db-data:
   flow-storage:

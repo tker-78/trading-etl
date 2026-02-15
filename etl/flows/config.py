@@ -19,3 +19,15 @@ SMA_FLOW_DEFAULT_PARAMS = {
     "periods": [14, 28, 56],
     "timeframes": ["1m", "5m", "1h"],
 }
+
+SMA_GOLDEN_CROSS_PARAMS = {
+    "short_period": 14,
+    "long_period": 28,
+    # "timeframe_code": "1m",
+    # "currency_pair_code": "USD/JPY",
+}
+
+SMA_DEAD_CROSS_PARAMS = {
+    "short_period": 14,
+    "long_period": 28,
+}

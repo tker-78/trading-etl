@@ -11,7 +11,11 @@ Base = declarative_base()
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 DB_PATH = os.path.join(PROJECT_ROOT, "ticker.sqlite")
 # engine = create_engine(f"sqlite:///{DB_PATH}?check_same_thread=False", pool_pre_ping=True)
-engine = create_engine(f'postgresql+psycopg2://postgres:postgres@localhost:5432/forex')
+
+# for docker compose
+engine = create_engine(f'postgresql+psycopg2://postgres:postgres@forex-db:5432/forex')
+# for localhost
+# engine = create_engine(f'postgresql+psycopg2://postgres:postgres@localhost:5432/forex')
 Session = sessionmaker(bind=engine)
 lock = threading.Lock()
 

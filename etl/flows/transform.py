@@ -3,7 +3,7 @@ import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
-from etl.flows.config import RSI_TASK_DEFAULT_PARAMS, RSI_FLOW_DEFAULT_PARAMS, SMA_TASK_DEFAULT_PARAMS, SMA_FLOW_DEFAULT_PARAMS
+from etl.flows.config import *
 
 
 ##### helpers: start ########
@@ -37,8 +37,18 @@ def _get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[in
         raise ValueError(f"Timeframe code {timeframe_code} not found")
     return currency_id, timeframe_id
 
+def _build_rsi_params(overrides: dict | None = None) -> dict:
+    return {**RSI_TASK_DEFAULT_PARAMS, **(overrides or {})}
+
 def _build_sma_params(overrides: dict | None = None) -> dict:
     return {**SMA_TASK_DEFAULT_PARAMS, **(overrides or {})}
+
+def _build_sma_golden_cross_params(overrides: dict | None = None) -> dict:
+    return {**SMA_GOLDEN_CROSS_PARAMS, **(overrides or {})}
+
+def _build_sma_dead_cross_params(overrides: dict | None = None) -> dict:
+    return {**SMA_DEAD_CROSS_PARAMS, **(overrides or {})}
+
 
 ##### helpers: end ########
 
@@ -176,8 +186,6 @@ ON CONFLICT DO NOTHING;
 ######## update indicators: start #############
 
 
-def _build_rsi_params(overrides: dict | None = None) -> dict:
-    return {**RSI_TASK_DEFAULT_PARAMS, **(overrides or {})}
 
 
 def update_rsi(connector,
@@ -346,10 +354,13 @@ def update_sma(connector,
 
 ######## insert signals based on a strategy: start #############
 
+
 def insert_sma_golden_cross(connector,
                             *,
                             short_period: int,
-                            long_period: int
+                            long_period: int,
+                            # currency_pair_code: str,
+                            # timeframe_code: str
 ):
     # **todo**
     # timeframeを指定する
@@ -411,9 +422,73 @@ def insert_sma_golden_cross(connector,
   ON CONFLICT DO NOTHING;
 
     """
-    connector.execute(query, {"short_period": 14, "long_period": 28})
+    connector.execute(query, {"short_period": short_period, "long_period": long_period})
+
+
+def insert_sma_dead_cross(connector,*, short_period: int, long_period: int):
+    query = f"""
+    INSERT INTO fact_buysell_events (
+        event_datetime, 
+        currency_id, 
+        price, 
+        quantity, 
+        event_type, 
+        trigger_indicator_name, 
+        trigger_indicator_value, 
+        trigger_indicator_timeframe, 
+        trigger_indicator_period
+    )
+    WITH sma AS (
+    SELECT
+      s.time,
+      s.currency_id,
+      s.timeframe_id,
+      s.calc_version,
+      s.value AS short_value,
+      l.value AS long_value
+    FROM fact_sma s
+    JOIN fact_sma l
+      ON s.time = l.time
+     AND s.currency_id = l.currency_id
+     AND s.timeframe_id = l.timeframe_id
+     AND s.calc_version = l.calc_version
+    WHERE s.period = :short_period
+      AND l.period = :long_period
+  ),
+  flag AS (
+    SELECT
+      *,
+      LAG(short_value) OVER (
+        PARTITION BY currency_id, timeframe_id, calc_version
+        ORDER BY time
+      ) AS prev_short,
+      LAG(long_value) OVER (
+        PARTITION BY currency_id, timeframe_id, calc_version
+        ORDER BY time
+      ) AS prev_long
+    FROM sma
+  )
+  SELECT
+    time, 
+    currency_id, 
+    short_value AS price, 
+    0 AS quantity,
+    'SELL' AS event_type, 
+    'SMA' AS trigger_indicator_name,
+    short_value AS trigger_indicator_value, 
+    timeframe_id AS trigger_indicator_timeframe, 
+    :short_period AS trigger_indicator_period
+  FROM flag
+  WHERE prev_short >= prev_long
+    AND short_value < long_value
+  ON CONFLICT DO NOTHING;
+"""
+    connector.execute(query, {"short_period": short_period, "long_period": long_period})
 
 ######## insert signals based on a strategy: end #############
+
+
+######## tasks: start ########
 
 @task(retries=2, retry_delay_seconds=30, log_prints=True)
 def update_usd_jpy_1m_task(block_name: str):
@@ -457,14 +532,26 @@ def update_sma_task(block_name: str,
         update_sma(conn, **params)
 
 @task(retries=2, retry_delay_seconds=30, log_prints=True)
-def insert_golden_cross_task(block_name: str):
+def insert_golden_cross_task(block_name: str,
+                             sma_golden_cross_params: dict | None = None
+                             ):
+    params = _build_sma_golden_cross_params()
     with SqlAlchemyConnector.load(block_name) as conn:
-        insert_sma_golden_cross(conn)
+        insert_sma_golden_cross(conn, **params)
 
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def insert_dead_cross_task(block_name: str,
+                           sma_dead_cross_param: dict | None = None):
+    params = _build_sma_dead_cross_params(sma_dead_cross_param)
+    with SqlAlchemyConnector.load(block_name) as conn:
+        insert_sma_dead_cross(conn, **params)
 
+######## tasks: end ########
+
+######## flows: start ########
 
 @flow
-def transform(block_name: str = "forex-connector"):
+def ohlc(block_name: str = "forex-connector"):
     # 最初に実行
     t1 = update_usd_jpy_1m_task(block_name)
 
@@ -507,10 +594,20 @@ def indicator(block_name: str = "forex-connector"):
     #         )
     #         sma_futures.append(f)
 
-    insert_golden_cross_task.submit(block_name)
-
     # return rsi_futures + sma_futures
 
+@flow
+def strategy(block_name: str = "forex-connector"):
+    """
+    add strategy tasks here
+    """
+    insert_golden_cross_task(block_name)
+    insert_dead_cross_task(block_name)
+
+######## flows: start ########
+
+
+
 if __name__ == "__main__":
-    transform()
+    ohlc()
     indicator()
