@@ -62,6 +62,7 @@ services:
       - ./etl:/app/etl
       - ./gmo:/app/gmo
       - ./database:/app/database
+    restart: always
 volumes:
   db-data:
   flow-storage:
