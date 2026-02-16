@@ -1,6 +1,7 @@
 prefect_sqlalchemy
 psycopg2-binary
 websocket-client
+websockets
 numpy
 ta-lib
 sqlalchemy
