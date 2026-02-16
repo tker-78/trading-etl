@@ -10,8 +10,7 @@ from etl.flows.config import *
 def _ohlc_table(currency_pair_code: str, timeframe_code: str):
     return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
 
-
-def _get_id(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
+def _get_ids(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
     currency_id_result = connector.execute(
         """
         SELECT id
@@ -49,10 +48,10 @@ def _build_sma_golden_cross_params(overrides: dict | None = None) -> dict:
 def _build_sma_dead_cross_params(overrides: dict | None = None) -> dict:
     return {**SMA_DEAD_CROSS_PARAMS, **(overrides or {})}
 
+def _build_ema_params(overrides: dict | None = None) -> dict:
+    return {**EMA_TASK_DEFAULT_PARAMS, **(overrides or {})}
 
 ##### helpers: end ########
-
-
 
 
 ######### update OHLC tables ##############
@@ -198,7 +197,7 @@ def update_rsi(connector,
 
     table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
 
-    currency_id, timeframe_id = _get_id(connector, currency_pair_code, timeframe_code)
+    currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
 
     latest_rsi_result = connector.execute(
         """
@@ -270,8 +269,6 @@ def update_rsi(connector,
     """
     connector.execute(insert_query, insert_rows)
 
-
-
 def update_sma(connector,
                *,
                period: int,
@@ -283,7 +280,7 @@ def update_sma(connector,
 
     table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
 
-    currency_id, timeframe_id = _get_id(connector, currency_pair_code, timeframe_code)
+    currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
 
     last_sma_result = connector.execute(
         f"""
@@ -348,12 +345,89 @@ def update_sma(connector,
     """
     connector.execute(insert_query, insert_rows)
 
+def update_ema(connector,
+               *,
+               period: int,
+               currency_pair_code: str,
+               timeframe_code: str
+               ):
+
+    _calc_version = 0
+
+    table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
+
+    currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
+
+    last_ema_result = connector.execute(
+        f"""
+        SELECT MAX(time)
+        FROM fact_ema
+        WHERE period = :period
+        AND currency_id = :currency_id
+        AND timeframe_id = :timeframe_id;
+        """, {"period": period, "currency_id": currency_id, "timeframe_id": timeframe_id}
+    )
+
+    last_ema_time = last_ema_result.scalar()
+
+    # 計算対象行を抽出する
+    if last_ema_time:
+        query = f"""
+        WITH boundary AS (
+        SELECT time
+        FROM {table_name}
+        WHERE time <= :last_ema_time
+        ORDER BY time DESC
+        OFFSET :period * 2 LIMIT 1
+        )
+        SELECT time, close
+        FROM {table_name}
+        WHERE time >= COALESCE((SELECT time FROM boundary), :last_ema_time)
+        ORDER BY time;
+        """
+        query_result = connector.execute(query, {"period": period, "last_ema_time": last_ema_time})
+    else:
+        query = f"""
+        SELECT time, close
+        FROM {table_name}
+        ORDER BY time;
+        """
+        query_result = connector.execute(query)
+
+    rows = query_result.all()
+
+    # talibでemaを計算する
+    closes = np.array([row[1] for row in rows], dtype=float)
+    ema_values = talib.EMA(closes, timeperiod=period)
+
+    # fact_emaに計算結果をinsertする
+    insert_rows = []
+
+    for (time, close), ema_value in zip(rows, ema_values):
+        insert_rows.append(
+            {
+                "time": time,
+                "currency_id": currency_id,
+                "timeframe_id": timeframe_id,
+                "period": period,
+                "calc_version": _calc_version,
+                "value": float(ema_value),
+            }
+        )
+
+    insert_query = f"""
+    INSERT INTO fact_ema (time, currency_id, timeframe_id, period, calc_version, value)
+    VALUES (:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
+    ON CONFLICT DO NOTHING;
+    """
+    connector.execute(insert_query, insert_rows)
+
+
 ######## update indicators: end #############
 
 
 
 ######## insert signals based on a strategy: start #############
-
 
 def insert_sma_golden_cross(connector,
                             *,
@@ -546,6 +620,12 @@ def insert_dead_cross_task(block_name: str,
     with SqlAlchemyConnector.load(block_name) as conn:
         insert_sma_dead_cross(conn, **params)
 
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def update_ema_task(block_name: str,
+                    ema_params: dict | None = None):
+    with SqlAlchemyConnector.load(block_name) as conn:
+        update_ema(conn, **ema_params)
+
 ######## tasks: end ########
 
 ######## flows: start ########
@@ -586,15 +666,28 @@ def indicator(block_name: str = "forex-connector"):
     sma_timeframes = SMA_FLOW_DEFAULT_PARAMS.get("timeframes")
     sma_params = _build_sma_params()
     sma_futures = []
-    # for timeframe_code in sma_timeframes:
-    #     for period in sma_periods:
-    #         f = update_sma_task.submit(
-    #             block_name,
-    #             sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
-    #         )
-    #         sma_futures.append(f)
+    for timeframe_code in sma_timeframes:
+        for period in sma_periods:
+            f = update_sma_task.submit(
+                block_name,
+                sma_params={**sma_params, "period": period, "timeframe_code": timeframe_code},
+            )
+            sma_futures.append(f)
 
-    # return rsi_futures + sma_futures
+    # call of ema
+    ema_periods = EMA_FLOW_DEFAULT_PARAMS.get("periods")
+    ema_timeframes = EMA_FLOW_DEFAULT_PARAMS.get("timeframes")
+    ema_params = _build_ema_params()
+    ema_futures = []
+    for timeframe_code in ema_timeframes:
+        for period in ema_periods:
+            f = update_ema_task.submit(
+                block_name,
+                ema_params={**ema_params, "period": period, "timeframe_code": timeframe_code},
+            )
+            ema_futures.append(f)
+
+    return rsi_futures + sma_futures + ema_futures
 
 @flow
 def strategy(block_name: str = "forex-connector"):
