@@ -1,0 +1,357 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>USD/JPY Realtime Ticker</title>
+  <style>
+    :root {
+      --bg-1: #f7fbff;
+      --bg-2: #e7f0ff;
+      --card: #ffffffd9;
+      --text: #102033;
+      --muted: #5f7186;
+      --line: #2f8cff;
+      --up: #0d9f6f;
+      --down: #d14343;
+      --flat: #56657a;
+      --ok: #0d9f6f;
+      --warn: #b68a06;
+      --err: #d14343;
+      --border: #d4e1f3;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Avenir Next", "Segoe UI", sans-serif;
+      color: var(--text);
+      background: radial-gradient(circle at 20% 0%, #ffffff, var(--bg-1) 45%, var(--bg-2));
+      padding: 24px;
+    }
+
+    .container {
+      max-width: 980px;
+      margin: 0 auto;
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 18px;
+      box-shadow: 0 10px 26px rgba(16, 32, 51, 0.08);
+    }
+
+    h1 {
+      margin: 0 0 6px;
+      font-size: 24px;
+      letter-spacing: 0.02em;
+    }
+
+    .meta {
+      margin: 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      padding: 5px 10px;
+      font-size: 13px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--flat);
+    }
+
+    .dot.connecting { background: var(--warn); }
+    .dot.connected { background: var(--ok); }
+    .dot.disconnected { background: var(--flat); }
+    .dot.error { background: var(--err); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .metric {
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px;
+      background: #fff;
+    }
+
+    .metric-label {
+      margin: 0 0 6px;
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .metric-value {
+      margin: 0;
+      font-size: 28px;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+      color: var(--flat);
+    }
+
+    .metric-value.up { color: var(--up); }
+    .metric-value.down { color: var(--down); }
+    .metric-value.flat { color: var(--flat); }
+
+    .chart-wrap {
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 8px;
+      height: 320px;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .axis {
+      stroke: #d8e4f4;
+      stroke-width: 1;
+    }
+
+    .line {
+      fill: none;
+      stroke: var(--line);
+      stroke-width: 2.2;
+      stroke-linejoin: round;
+      stroke-linecap: round;
+    }
+
+    .empty {
+      fill: var(--muted);
+      font-size: 14px;
+      text-anchor: middle;
+      dominant-baseline: middle;
+    }
+
+    @media (max-width: 760px) {
+      body { padding: 14px; }
+      .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .metric-value { font-size: 24px; }
+      .chart-wrap { height: 260px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="container">
+    <section class="card">
+      <h1>USD/JPY Realtime</h1>
+      <p class="meta">WebSocket endpoint: <code id="endpointLabel"></code></p>
+    </section>
+
+    <section class="card status-row">
+      <div class="badge">
+        <span class="dot connecting" id="statusDot"></span>
+        <span id="statusText">Connecting</span>
+      </div>
+      <div class="meta">Latest Receive: <strong id="latestReceive">-</strong></div>
+      <div class="meta" id="lastError">Error: -</div>
+    </section>
+
+    <section class="card grid">
+      <article class="metric">
+        <p class="metric-label">Bid</p>
+        <p class="metric-value flat" id="bidValue">-</p>
+      </article>
+      <article class="metric">
+        <p class="metric-label">Ask</p>
+        <p class="metric-value flat" id="askValue">-</p>
+      </article>
+      <article class="metric">
+        <p class="metric-label">Mid</p>
+        <p class="metric-value flat" id="midValue">-</p>
+      </article>
+      <article class="metric">
+        <p class="metric-label">Timestamp</p>
+        <p class="metric-value flat" id="timestampValue" style="font-size:16px;line-height:1.35;">-</p>
+      </article>
+    </section>
+
+    <section class="card">
+      <div class="chart-wrap">
+        <svg id="chart" viewBox="0 0 900 300" preserveAspectRatio="none">
+          <line class="axis" x1="36" y1="12" x2="36" y2="288"></line>
+          <line class="axis" x1="36" y1="288" x2="888" y2="288"></line>
+          <path class="line" id="linePath"></path>
+          <text class="empty" id="emptyText" x="462" y="150">tickerデータ待機中...</text>
+        </svg>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const MAX_POINTS = 120;
+    const CHART = { left: 36, right: 888, top: 12, bottom: 288 };
+    const TICKER_PATH = "/ws/ticker_usd_jpy";
+    const params = new URLSearchParams(location.search);
+    const WS_PROTO = params.get("wsProto") || (location.protocol === "https:" ? "wss" : "ws");
+    const WS_HOST = params.get("wsHost") || location.hostname || "localhost";
+    const WS_PORT = params.get("wsPort") || "8765";
+    const WS_URL = `${WS_PROTO}://${WS_HOST}:${WS_PORT}${TICKER_PATH}`;
+
+    const els = {
+      endpointLabel: document.getElementById("endpointLabel"),
+      statusDot: document.getElementById("statusDot"),
+      statusText: document.getElementById("statusText"),
+      latestReceive: document.getElementById("latestReceive"),
+      lastError: document.getElementById("lastError"),
+      bidValue: document.getElementById("bidValue"),
+      askValue: document.getElementById("askValue"),
+      midValue: document.getElementById("midValue"),
+      timestampValue: document.getElementById("timestampValue"),
+      linePath: document.getElementById("linePath"),
+      emptyText: document.getElementById("emptyText")
+    };
+
+    const series = [];
+    let ws = null;
+    let prevMid = null;
+
+    function setStatus(kind, text) {
+      els.statusDot.className = `dot ${kind}`;
+      els.statusText.textContent = text;
+    }
+
+    function setDirectionClass(mid) {
+      let klass = "flat";
+      if (prevMid !== null && mid > prevMid) klass = "up";
+      if (prevMid !== null && mid < prevMid) klass = "down";
+
+      for (const target of [els.bidValue, els.askValue, els.midValue]) {
+        target.classList.remove("up", "down", "flat");
+        target.classList.add(klass);
+      }
+      prevMid = mid;
+    }
+
+    function formatPrice(v) {
+      return Number(v).toFixed(3);
+    }
+
+    function toLocal(iso) {
+      const d = new Date(iso);
+      if (Number.isNaN(d.getTime())) return iso;
+      return d.toLocaleString("ja-JP", { hour12: false });
+    }
+
+    function redrawChart() {
+      if (series.length === 0) {
+        els.linePath.setAttribute("d", "");
+        els.emptyText.style.display = "block";
+        return;
+      }
+      els.emptyText.style.display = "none";
+
+      let min = Infinity;
+      let max = -Infinity;
+      for (const p of series) {
+        if (p.mid < min) min = p.mid;
+        if (p.mid > max) max = p.mid;
+      }
+      if (max === min) {
+        max += 0.001;
+        min -= 0.001;
+      }
+
+      const width = CHART.right - CHART.left;
+      const height = CHART.bottom - CHART.top;
+      const stepX = series.length === 1 ? 0 : width / (series.length - 1);
+
+      const points = series.map((p, i) => {
+        const x = CHART.left + i * stepX;
+        const normalized = (p.mid - min) / (max - min);
+        const y = CHART.bottom - normalized * height;
+        return `${i === 0 ? "M" : "L"} ${x.toFixed(2)} ${y.toFixed(2)}`;
+      });
+      els.linePath.setAttribute("d", points.join(" "));
+    }
+
+    function onTicker(msg) {
+      const bid = Number(msg.bid);
+      const ask = Number(msg.ask);
+      const mid = Number(msg.mid);
+      if (![bid, ask, mid].every(Number.isFinite)) return;
+
+      setDirectionClass(mid);
+      els.bidValue.textContent = formatPrice(bid);
+      els.askValue.textContent = formatPrice(ask);
+      els.midValue.textContent = formatPrice(mid);
+      els.timestampValue.textContent = msg.timestamp || "-";
+      els.latestReceive.textContent = toLocal(new Date().toISOString());
+
+      series.push({ mid, ts: msg.timestamp });
+      if (series.length > MAX_POINTS) series.shift();
+      redrawChart();
+    }
+
+    function onMessage(raw) {
+      let msg = null;
+      try {
+        msg = JSON.parse(raw.data);
+      } catch {
+        return;
+      }
+
+      if (msg.type === "ticker") {
+        onTicker(msg);
+        return;
+      }
+      if (msg.type === "heartbeat") {
+        return;
+      }
+      if (msg.type === "error") {
+        const code = msg.code ? `[${msg.code}] ` : "";
+        els.lastError.textContent = `Error: ${code}${msg.message || "unknown"}`;
+        setStatus("error", "Error");
+      }
+    }
+
+    function connect() {
+      setStatus("connecting", "Connecting");
+      ws = new WebSocket(WS_URL);
+      ws.onopen = () => setStatus("connected", "Connected");
+      ws.onmessage = onMessage;
+      ws.onerror = () => setStatus("error", "Error");
+      ws.onclose = () => setStatus("disconnected", "Disconnected");
+    }
+
+    els.endpointLabel.textContent = WS_URL;
+    connect();
+  </script>
+</body>
+</html>

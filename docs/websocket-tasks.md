@@ -10,7 +10,7 @@
 - `coin.z websocket -> gmo/ws-connection.py -> ticker_usd_jpy(1秒単位 insert) -> gmo/ws_ticker_server.py -> UI`
 - `gmo/ws_ticker_server.py` は coin.z へ直接接続せず、`ticker_usd_jpy` への追加分を配信する。
 
-## 進捗ステータス（2026-02-16）
+## 進捗ステータス（2026-02-18）
 
 - `T1`: 完了
   - `docs/ws_ticker_spec.md` を作成し、配信仕様を固定
@@ -22,9 +22,15 @@
   - `gmo/ws_ticker_server.py` を DB ポーリング配信へ変更
   - `ticker_usd_jpy` 追加分のみ配信するカーソル管理を実装
   - 最新 `ticker` 1 件キャッシュ保持と新規接続時即時送信を実装
-- `T4`: 未着手
+- `T4`: 完了
+  - `ui/ticker_usd_jpy.html` を追加（単独ページ PoC）
+  - `mid` ラインのリアルタイム描画、価格/時刻表示、接続状態バッジを実装
+  - `mid` 上昇/下降で色変化、最新受信時刻表示を実装
 - `T5`: 未着手
-- `T6`: 未着手
+- `T6`: 完了
+  - `docker-compose.yaml` に `ws-ticker-server` / `ui-server` を追加
+  - `README.md` に Docker での UI 起動手順を追記
+  - 起動コマンドを `docker compose up -d ws-ticker-server ui-server` に整理
 - `T7`: 未着手
 
 ## チケット一覧（実装順）
@@ -60,6 +66,7 @@
 
 ### T4: 最小 UI（単独ページ）を実装
 - 目的: ブラウザでリアルタイム配信とチャート表示を確認
+- ステータス: 完了
 - 完了条件:
   - `mid` の時系列ラインをリアルタイム描画できる
   - `bid`, `ask`, `mid`, `timestamp` が更新される
@@ -76,6 +83,7 @@
 
 ### T6: Docker/起動導線を追加
 - 目的: 手元再現を簡単にする
+- ステータス: 完了
 - 完了条件:
   - `docker-compose.yaml` にサービス追記
   - 起動手順を `README.md` へ追記

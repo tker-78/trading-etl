@@ -63,6 +63,33 @@ services:
       - ./gmo:/app/gmo
       - ./database:/app/database
     restart: always
+
+  ws-ticker-server:
+    build: .
+    working_dir: /app
+    command: python gmo/ws_ticker_server.py
+    environment:
+      PYTHONPATH: /app
+      WS_HOST: 0.0.0.0
+      WS_PORT: 8765
+    depends_on:
+      - forex-db
+    volumes:
+      - ./gmo:/app/gmo
+      - ./database:/app/database
+    ports:
+      - "8765:8765"
+    restart: always
+
+  ui-server:
+    image: python:3.12-slim
+    working_dir: /app
+    command: python -m http.server 8080 --directory /app/ui
+    volumes:
+      - ./ui:/app/ui:ro
+    ports:
+      - "8080:8080"
+    restart: always
 volumes:
   db-data:
   flow-storage:

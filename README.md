@@ -28,3 +28,14 @@ supersetから`etl-db`を参照するには、networkのconnectが必要。
 ```bash
 docker network connect superset_default trading-etl-etl-db-1
 ```
+
+## WebSocket UI (T4 PoC)
+
+DockerでWebSocketサーバーとUI静的配信を同時に起動する。
+
+```bash
+docker compose up -d ws-ticker-server ui-server
+```
+
+`ws-ticker-server` は `8765:8765` を公開し、`ui-server` は `8080:8080` を公開する。
+ブラウザで `http://localhost:8080/ticker_usd_jpy.html` を開く。
