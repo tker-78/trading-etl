@@ -111,6 +111,8 @@ async def db_relay_loop() -> None:
     """
 
     # 処理済みの時刻を割り出す
+    latest_row = await asyncio.to_thread(fetch_latest_row)
+    last_processed_time = datetime(1970, 1,1,tzinfo=timezone.utc)
 
 
     # 処理済みの時刻以降のレコードを配信する
