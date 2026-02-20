@@ -9,6 +9,7 @@ from sqlalchemy import text
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
+
 WS_PATH = "/ws/ticker_usd_jpy"
 HEARTBEAT_INTERVAL_SECONDS = 30
 
@@ -64,6 +65,9 @@ async def send_json(client: ServerConnection, payload: dict) -> None:
         await client.send(json.dumps(payload))
     except ConnectionClosed:
         pass
+
+async def send_error_and_close(client: ServerConnection):
+    ...
 
 async def broadcast(payload) -> None:
     clients = await registry.snapshot()
@@ -163,14 +167,44 @@ async def db_relay_loop() -> None:
                 last_processed_time = current_time
             await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
         except Exception:
+            await broadcast(
+                {
+                    "type": "error",
+                    "code": "DB_POLLING_FAILED",
+                    "message": "ticker db polling failed",
+                    "timestamp": utc_now_iso(),
+                }
+            )
             await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
 
 async def heart_beat_loop():
-    ...
+    while True:
+        await asyncio.sleep(HEARTBEAT_INTERVAL_SECONDS)
+        payload = {"type": "heartbeat", "timestamp": utc_now_iso()}
+        await broadcast(payload)
 
 
 async def handler(client: ServerConnection) -> None:
-    ...
+    """
+    registry, TickerCacheの制御
+    """
+    # ws以外の接続を拒否する
+    path = client.request.path
+    if path != WS_PATH:
+        await send_error_and_close(client, f"unsupported path: {path}")
+        return
+
+    #
+    connected = await registry.add(client)
+    try:
+        cached = await latest_ticker.get()
+        if cached is not None:
+            await send_json(client, cached)
+        await client.wait_closed()
+    finally:
+        connected = await registry.remove(client)
+
+
 
 
 
