@@ -19,6 +19,11 @@ DB_ERROR_RETRY_SECONDS = 3
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
+def normalize_utc_timestamp(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
 
 class ClientRegistry:
     def __init__(self):
@@ -42,10 +47,12 @@ class LatestTickerCache:
         self._lock = asyncio.Lock()
 
     async def set(self, payload: dict) -> None:
-        ...
+        async with self._lock:
+            self._ticker = dict(payload)
 
     async def get(self) -> dict | None:
-        ...
+        async with self._lock:
+            return dict(self._ticker) if self._ticker is not None else None
 
 
 latest_ticker = LatestTickerCache()
@@ -64,11 +71,29 @@ async def broadcast(payload) -> None:
         return
     await asyncio.gather(*(send_json(client, payload) for client in clients), return_exceptions=True)
 
-def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetime, dict]:
+def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetime, dict] | None:
     """
     DBのレコードをwebsocket用に整形する
     """
-    ...
+    record_time, bid_row, ask_row = row
+    try:
+        bid = float(bid_row)
+        ask = float(ask_row)
+        timestamp = normalize_utc_timestamp(record_time)
+    except (TypeError, ValueError, AttributeError):
+        return None
+
+    mid = (bid + ask) / 2
+    return (timestamp,
+            {
+                "bid": bid,
+                "ask": ask,
+                "timestamp": timestamp,
+                "type": "ticker",
+                "symbol": SYMBOL,
+                "mid": mid,
+            })
+
 
 def fetch_latest_row() -> tuple[datetime, float, float] | None:
     """
@@ -87,7 +112,7 @@ def fetch_latest_row() -> tuple[datetime, float, float] | None:
         row = session.execute(sql).first()
     return (row[0], row[1], row[2]) if row is not None else None
 
-def fetch_rows_after(last_processed_time: datetime) -> list[tuple[datetime, float, float]]
+def fetch_rows_after(last_processed_time: datetime) -> list[tuple[datetime, float, float]]:
     """
     未処理のレコードを抽出する
     """
@@ -111,11 +136,41 @@ async def db_relay_loop() -> None:
     """
 
     # 処理済みの時刻を割り出す
-    latest_row = await asyncio.to_thread(fetch_latest_row)
-    last_processed_time = datetime(1970, 1,1,tzinfo=timezone.utc)
+    bootstrap_row = await asyncio.to_thread(fetch_latest_row)
+    last_processed_time = None
+    if bootstrap_row is not None:
+        normalized_record = normalize_ticker_record(bootstrap_row)
+        bootstrap_time = normalize_utc_timestamp(bootstrap_row[0])
+        last_processed_time = bootstrap_time
 
+        if normalized_record is not None:
+            _, payload = normalized_record
+            await latest_ticker.set(payload)
 
     # 処理済みの時刻以降のレコードを配信する
+    while True:
+        try:
+            rows = await asyncio.to_thread(fetch_rows_after, last_processed_time)
+            for row in rows:
+                current_time = normalize_utc_timestamp(row[0])
+                payload = normalize_ticker_record(row)
+                if payload is None:
+                    last_processed_time = current_time
+                    continue
+                _, ticker_payload = payload
+                await latest_ticker.set(ticker_payload)
+                await broadcast(ticker_payload)
+                last_processed_time = current_time
+            await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
+        except Exception:
+            await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
+
+async def heart_beat_loop():
+    ...
+
+
+async def handler(client: ServerConnection) -> None:
+    ...
 
 
 
