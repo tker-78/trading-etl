@@ -17,6 +17,7 @@ SYMBOL = "USD_JPY"
 DB_POLL_INTERVAL_SECONDS = float(os.getenv("DB_POLL_INTERVAL_SECONDS", "1.0"))
 DB_ERROR_RETRY_SECONDS = 3
 
+### helper methods ###
 def utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="milliseconds").replace("+00:00", "Z")
 
@@ -25,6 +26,10 @@ def normalize_utc_timestamp(dt: datetime) -> datetime:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
 
+#######################
+
+
+### Class definition ###
 
 class ClientRegistry:
     def __init__(self):
@@ -35,7 +40,7 @@ class ClientRegistry:
         async with self._lock:
             self._clients.add(client)
 
-    async def remove(self, client: ServerConnection):
+    async def remove(self, client: ServerConnection) -> int:
         async with self._lock:
             self._clients.discard(client)
             return len(self._clients)
@@ -43,8 +48,6 @@ class ClientRegistry:
     async def snapshot(self) -> list[ServerConnection]:
         async with self._lock:
             return list(self._clients)
-
-registry = ClientRegistry()
 
 class LatestTickerCache:
     def __init__(self) -> None:
@@ -59,10 +62,18 @@ class LatestTickerCache:
         async with self._lock:
             return dict(self._ticker) if self._ticker is not None else None
 
+#########################
 
+
+### instances generation ###
+
+registry = ClientRegistry()
 latest_ticker = LatestTickerCache()
 
+############################
 
+
+### main functions ###
 
 async def send_json(client: ServerConnection, payload: dict) -> None:
     try:
@@ -70,8 +81,17 @@ async def send_json(client: ServerConnection, payload: dict) -> None:
     except ConnectionClosed:
         pass
 
-async def send_error_and_close(client: ServerConnection):
-    ...
+async def send_error_and_close(client: ServerConnection, message: str) -> None:
+    await send_json(
+        client,
+        {
+            "type": "error",
+            "code": "INVALID PATH",
+            "message": message,
+            "timestamp": utc_now_iso(),
+        },
+    )
+    await client.close(code=1008, reason=message)
 
 async def broadcast(payload) -> None:
     clients = await registry.snapshot()
