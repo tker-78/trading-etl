@@ -32,13 +32,17 @@ class ClientRegistry:
         self._lock = asyncio.Lock()
 
     async def add(self, client: ServerConnection) -> int:
-        ...
+        async with self._lock:
+            self._clients.add(client)
 
     async def remove(self, client: ServerConnection):
-        ...
+        async with self._lock:
+            self._clients.discard(client)
+            return len(self._clients)
 
     async def snapshot(self) -> list[ServerConnection]:
-        ...
+        async with self._lock:
+            return list(self._clients)
 
 registry = ClientRegistry()
 
@@ -92,7 +96,7 @@ def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetim
             {
                 "bid": bid,
                 "ask": ask,
-                "timestamp": timestamp,
+                "timestamp": timestamp.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
                 "type": "ticker",
                 "symbol": SYMBOL,
                 "mid": mid,
@@ -194,7 +198,7 @@ async def handler(client: ServerConnection) -> None:
         await send_error_and_close(client, f"unsupported path: {path}")
         return
 
-    #
+    # clientの処理
     connected = await registry.add(client)
     try:
         cached = await latest_ticker.get()
@@ -203,6 +207,25 @@ async def handler(client: ServerConnection) -> None:
         await client.wait_closed()
     finally:
         connected = await registry.remove(client)
+
+async def run_server() -> None:
+    host = os.getenv("WS_HOST", "0.0.0.0")
+    port = os.getenv("WS_PORT", "8765")
+
+    async with serve(handler, host=host, port=port):
+        await asyncio.gather(
+            heart_beat_loop(),
+            db_relay_loop(),
+        )
+
+if __name__ == "__main__":
+    asyncio.run(run_server())
+
+
+
+
+
+
 
 
 
