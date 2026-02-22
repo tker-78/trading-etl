@@ -53,6 +53,31 @@ def _build_ema_params(overrides: dict | None = None) -> dict:
 
 ##### helpers: end ########
 
+######### create ticker tables: start #########
+def create_ticker_tables(connector):
+    select_query = f"""
+    SELECT currency_pair_key
+    FROM dim_currency;
+    """
+    rows = connector.execute(select_query).all()
+    for row in rows:
+        tablename = f"ticker_{row.lower()}"
+        create_query = """
+        CREATE TABLE IF NOT EXISTS :tablename (
+            time TIMESTAMP PRIMARY KEY,
+            bid FLOAT,
+            ask FLOAT 
+        );
+        """
+        print(type(row))
+        # connector.execute(create_query, {"tablename": tablename})
+
+
+
+######### create ticker tables: end #########
+
+
+
 
 ######### update OHLC tables ##############
 
@@ -565,6 +590,12 @@ def insert_sma_dead_cross(connector,*, short_period: int, long_period: int):
 ######## tasks: start ########
 
 @task(retries=2, retry_delay_seconds=30, log_prints=True)
+def create_ticker_tables_task(block_name: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
+        create_ticker_tables(conn)
+
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
 def update_usd_jpy_1m_task(block_name: str):
     with SqlAlchemyConnector.load(block_name) as conn:
         update_usd_jpy_1m(conn)
@@ -629,6 +660,11 @@ def update_ema_task(block_name: str,
 ######## tasks: end ########
 
 ######## flows: start ########
+
+@flow
+def ticker(block_name: str = "forex-connector"):
+    create_ticker_tables_task(block_name)
+
 
 @flow
 def ohlc(block_name: str = "forex-connector"):
@@ -704,3 +740,4 @@ def strategy(block_name: str = "forex-connector"):
 if __name__ == "__main__":
     ohlc()
     indicator()
+    ticker()

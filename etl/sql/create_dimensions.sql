@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS dim_currency (
 
     UNIQUE (base_currency, quote_currency),
     UNIQUE (currency_pair_code),
-    UNIQUE (currency_pair_symbol)
+    UNIQUE (currency_pair_symbol),
 );
 
 CREATE TABLE IF NOT EXISTS dim_timeframe (
@@ -18,3 +18,4 @@ CREATE TABLE IF NOT EXISTS dim_timeframe (
     UNIQUE (timeframe_code),
     UNIQUE (duration_seconds)
 );
+
