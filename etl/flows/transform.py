@@ -7,8 +7,12 @@ from etl.flows.config import *
 
 
 ##### helpers: start ########
+def _ticker_table(currency_pair_code: str) -> str:
+    return f"ticker_{currency_pair_code.replace('/', '_').lower()}"
+
 def _ohlc_table(currency_pair_code: str, timeframe_code: str):
     return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
+
 
 def _get_ids(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
     currency_id_result = connector.execute(
@@ -55,24 +59,22 @@ def _build_ema_params(overrides: dict | None = None) -> dict:
 
 ######### create ticker tables: start #########
 def create_ticker_tables(connector):
-    select_query = f"""
-    SELECT currency_pair_key
+    select_query = """
+    SELECT currency_pair_code
     FROM dim_currency;
     """
     rows = connector.execute(select_query).all()
-    for row in rows:
-        tablename = f"ticker_{row.lower()}"
-        create_query = """
-        CREATE TABLE IF NOT EXISTS :tablename (
+
+    for pair in rows:
+        tablename = quoted_name(_ticker_table(pair[0]), quote=True)
+        create_query = f"""
+        CREATE TABLE IF NOT EXISTS {tablename} (
             time TIMESTAMP PRIMARY KEY,
             bid FLOAT,
-            ask FLOAT 
+            ask FLOAT
         );
         """
-        print(type(row))
-        # connector.execute(create_query, {"tablename": tablename})
-
-
+        connector.execute(create_query)
 
 ######### create ticker tables: end #########
 
@@ -738,6 +740,6 @@ def strategy(block_name: str = "forex-connector"):
 
 
 if __name__ == "__main__":
-    ohlc()
-    indicator()
+    # ohlc()
+    # indicator()
     ticker()
