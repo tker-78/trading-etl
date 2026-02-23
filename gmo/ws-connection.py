@@ -16,6 +16,7 @@ RATE_LIMIT_ERROR = "ERR-5003 Request too many."
 
 class Ticker(Base):
     __abstract__ = True
+    __table_args__ = {"schema": "ticker"}
     """
     Websocketから受信したデータを1sec単位で保存するためのクラス
     """

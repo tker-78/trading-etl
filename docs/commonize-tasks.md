@@ -23,11 +23,40 @@
 - 受信したデータをticker_{CURRENCY_PAIR_CODE}テーブルに保存する。
 - Streamerのon_openでsubscribe情報を複数作成して、同一のwebsocket connectionで複数subscribeする。
 
+## T3: DB整理
+
+- ticker, OHLC, dim/factをスキーマに分ける。 
+- ws-connection.pyの保存先DBをtickerスキーマに指定する。
+
+
+
+## T4: ws-connection.py
+
+- 各種通貨ペア毎のクラス、ticker_factoryの生成を共通化する。
+- dim_currencyの`currency_pair_symbol`を取得して、動的にクラスを生成する、または
+  動的に
+
+
+## T5: transform.pyを責務単位に分割する。
+
+- 
+
 
 ## 進捗記録
 
 ### T1: 完了
 
 ### T2: 完了
+
+### T3: 進行中
+
+### T4: 未着手
+
+### T5: 未着手
+
+
+
+
+
 
 
