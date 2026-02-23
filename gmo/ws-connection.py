@@ -77,6 +77,16 @@ class TickerUSDJPY(Ticker):
     __tablename__ = 'ticker_usd_jpy'
 class TickerEURJPY(Ticker):
     __tablename__ = 'ticker_eur_jpy'
+class TickerGBPJPY(Ticker):
+    __tablename__ = 'ticker_gbp_jpy'
+class TickerAUDJPY(Ticker):
+    __tablename__ = 'ticker_aud_jpy'
+class TickerNZDJPY(Ticker):
+    __tablename__ = 'ticker_nzd_jpy'
+class TickerCADJPY(Ticker):
+    __tablename__ = 'ticker_cad_jpy'
+class TickerCHFJPY(Ticker):
+    __tablename__ = 'ticker_chf_jpy'
 
 ticker_factory = {'USD_JPY': TickerUSDJPY, 'EUR_JPY': TickerEURJPY}
 ticker_list = ticker_factory.keys()
