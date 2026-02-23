@@ -66,9 +66,10 @@ def create_ticker_tables(connector):
     rows = connector.execute(select_query).all()
 
     for pair in rows:
+        schema_name = quoted_name(SCHEMA_NAME_TICKER, quote=True)
         tablename = quoted_name(_ticker_table(pair[0]), quote=True)
         create_query = f"""
-        CREATE TABLE IF NOT EXISTS {tablename} (
+        CREATE TABLE IF NOT EXISTS {schema_name}.{tablename} (
             time TIMESTAMP PRIMARY KEY,
             bid FLOAT,
             ask FLOAT
@@ -85,13 +86,13 @@ def create_ticker_tables(connector):
 
 def update_usd_jpy_1m(connector):
     query = """
-INSERT INTO usd_jpy_1m (time, open, high, low, close)
+INSERT INTO ohlc.usd_jpy_1m (time, open, high, low, close)
 WITH bucket_time AS (
 SELECT
     DATE_TRUNC('minute', time) AS bucket,
     time,
     bid
-FROM ticker_usd_jpy
+FROM ticker.ticker_usd_jpy
 )
 SELECT
 bucket AS time,
@@ -107,7 +108,7 @@ ON CONFLICT DO NOTHING;
 
 def update_usd_jpy_5m(connector):
     query = """
-INSERT INTO usd_jpy_5m (time, open, high, low, close)
+INSERT INTO ohlc.usd_jpy_5m (time, open, high, low, close)
 WITH bucket_time AS (
 SELECT
     date_trunc('minute', time) - (EXTRACT(minute FROM time)::int % 5) * interval  '1 minute' AS bucket,
@@ -116,7 +117,7 @@ SELECT
     high,
     low,
     close
-FROM usd_jpy_1m
+FROM ohlc.usd_jpy_1m
 )
 SELECT
     bucket AS time,
@@ -132,7 +133,7 @@ ON CONFLICT DO NOTHING;
 
 def update_usd_jpy_30m(connector):
     query = """
-INSERT INTO usd_jpy_30m (time, open, high, low, close)
+INSERT INTO ohlc.usd_jpy_30m (time, open, high, low, close)
 WITH bucket_time AS (
 SELECT
     date_trunc('minute', time) - (EXTRACT(minute FROM time)::int % 30) * interval  '1 minute' AS bucket,
@@ -141,7 +142,7 @@ SELECT
     high,
     low,
     close
-FROM usd_jpy_1m
+FROM ohlc.usd_jpy_1m
 )
 SELECT
     bucket AS time,
@@ -157,7 +158,7 @@ ON CONFLICT DO NOTHING;
 
 def update_usd_jpy_1h(connector):
     query = """
-INSERT INTO usd_jpy_1h (time, open, high, low, close)
+INSERT INTO ohlc.usd_jpy_1h (time, open, high, low, close)
 WITH bucket_time AS (
     SELECT
         date_trunc('hour', time) AS bucket,
@@ -166,7 +167,7 @@ WITH bucket_time AS (
         high,
         low,
         close
-    FROM usd_jpy_1m
+    FROM ohlc.usd_jpy_1m
 )
 SELECT
     bucket AS time,
@@ -182,7 +183,7 @@ ON CONFLICT DO NOTHING;
 
 def update_usd_jpy_4h(connector):
     query = """
-INSERT INTO usd_jpy_4h (time, open, high, low, close)
+INSERT INTO ohlc.usd_jpy_4h (time, open, high, low, close)
 WITH bucket_time AS (
     SELECT
         date_trunc('hour', time) - (EXTRACT(hour FROM time)::int % 4) * interval '1 hour' AS bucket,
@@ -191,7 +192,7 @@ WITH bucket_time AS (
         high,
         low,
         close
-    FROM usd_jpy_1m
+    FROM ohlc.usd_jpy_1m
 )
 SELECT
     bucket AS time,
@@ -222,7 +223,9 @@ def update_rsi(connector,
                ):
     _calc_version = 0
 
+    schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
     table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
+    table_name = f"{schema_name}.{table_name}"
 
     currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
 
@@ -305,7 +308,9 @@ def update_sma(connector,
 
     _calc_version = 0
 
+    schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
     table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
+    table_name = f"{schema_name}.{table_name}"
 
     currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
 
@@ -381,7 +386,9 @@ def update_ema(connector,
 
     _calc_version = 0
 
+    schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
     table_name = quoted_name(_ohlc_table(currency_pair_code, timeframe_code), quote=True)
+    table_name = f"{schema_name}.{table_name}"
 
     currency_id, timeframe_id = _get_ids(connector, currency_pair_code, timeframe_code)
 

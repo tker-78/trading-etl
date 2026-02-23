@@ -1,3 +1,11 @@
+### General setting params ###
+
+SCHEMA_NAME_OHLC = "ohlc"
+SCHEMA_NAME_TICKER = "ticker"
+
+
+### params for indicator setting ###
+
 RSI_TASK_DEFAULT_PARAMS = {
     "period": 14,
     "currency_pair_code": "USD/JPY",

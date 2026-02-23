@@ -27,7 +27,21 @@
 
 - ticker, OHLC, dim/factをスキーマに分ける。 
 - ws-connection.pyの保存先DBをtickerスキーマに指定する。
+- etl/flows/transform.pyのticker取得先スキーマをtickerスキーマに変更する。
+- スキーマの指定が煩雑になるので、`psycopg2`の`sql.SQL`を使って識別子を指定する構成に変更する。(**これは不採用**)
+```sql
+from psycopg2 import sql
 
+schema = "ohlc"
+table = "usd_jpy_1m"
+
+q = sql.SQL("SELECT time, close FROM {}.{} ORDER BY time").format(
+    sql.Identifier(schema),
+    sql.Identifier(table),
+)
+
+cur.execute(q)  # 値があるなら cur.execute(q, (value1, ...)) のように別で渡す
+```
 
 
 ## T4: ws-connection.py
