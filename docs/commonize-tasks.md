@@ -21,12 +21,13 @@
   - CHF_JPY
 - 上記銘柄について、並列でtickerデータをwebsocketで受信する。
 - 受信したデータをticker_{CURRENCY_PAIR_CODE}テーブルに保存する。
+- Streamerのon_openでsubscribe情報を複数作成して、同一のwebsocket connectionで複数subscribeする。
 
 
 ## 進捗記録
 
 ### T1: 完了
 
-### T2: 未完了
+### T2: 完了
 
 

@@ -2,6 +2,7 @@ from prefect import task
 from pydantic import SecretStr
 from prefect_sqlalchemy import SqlAlchemyConnector, ConnectionComponents, SyncDriver
 
+
 @task
 def db_connection():
     connection_info = ConnectionComponents(

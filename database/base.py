@@ -32,3 +32,4 @@ def session_scope():
         raise
     finally:
         lock.release()
+        session.close()
