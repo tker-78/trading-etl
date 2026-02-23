@@ -2,7 +2,6 @@ import json
 import os
 import time
 import websocket
-import threading
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 from database.base import session_scope
@@ -17,9 +16,8 @@ RATE_LIMIT_ERROR = "ERR-5003 Request too many."
 
 class Ticker(Base):
     __abstract__ = True
-    # __tablename__ = 'ticker_usd_jpy' # 修正が必要
     """
-    Websocketから受信したデータを1sec単位で保存するためのオブジェクト
+    Websocketから受信したデータを1sec単位で保存するためのクラス
     """
     time = Column(DateTime, primary_key=True)
     bid = Column(Float)
@@ -80,7 +78,6 @@ class TickerUSDJPY(Ticker):
 class TickerEURJPY(Ticker):
     __tablename__ = 'ticker_eur_jpy'
 
-# ticker_factory = ['TickerUSDJPY', 'TickerEURJPY']
 ticker_factory = {'USD_JPY': TickerUSDJPY, 'EUR_JPY': TickerEURJPY}
 ticker_list = ticker_factory.keys()
 
@@ -163,15 +160,4 @@ class Streamer:
             time.sleep(RECONNECT_BACKOFF_SECONDS)
 
 if __name__ == '__main__':
-    # Streamer('USD_JPY').run()
-    # Streamer('EUR_JPY').run()
     Streamer(ticker_list).run()
-    # threads = []
-    # for symbol in ticker_list:
-    #     streamer = Streamer(symbol)
-    #     t = threading.Thread(target=streamer.run, daemon=True)
-    #     t.start()
-    #     threads.append(t)
-    #
-    # for t in threads:
-    #     t.join()
