@@ -59,7 +59,7 @@ class Ticker(Base):
 # tickerオブジェクト生成ファクトリ
 # dim_currencyからcurrency_pair_codeのリストを取得する
 def get_currencies() -> list[str]:
-    currency_list = []
+    currency_list: list[str] = []
     with session_scope() as session:
         query = text("""
         SELECT currency_pair_symbol
@@ -73,26 +73,46 @@ def get_currencies() -> list[str]:
 
 # リストに基づきTickerクラスを生成するファクトリ
 # currency_list = get_currencies()
+#
+# class TickerUSDJPY(Ticker):
+#     __tablename__ = 'ticker_usd_jpy'
+# class TickerEURJPY(Ticker):
+#     __tablename__ = 'ticker_eur_jpy'
+# class TickerGBPJPY(Ticker):
+#     __tablename__ = 'ticker_gbp_jpy'
+# class TickerAUDJPY(Ticker):
+#     __tablename__ = 'ticker_aud_jpy'
+# class TickerNZDJPY(Ticker):
+#     __tablename__ = 'ticker_nzd_jpy'
+# class TickerCADJPY(Ticker):
+#     __tablename__ = 'ticker_cad_jpy'
+# class TickerCHFJPY(Ticker):
+#     __tablename__ = 'ticker_chf_jpy'
+#
+# ticker_factory = {'USD_JPY': TickerUSDJPY, 'EUR_JPY': TickerEURJPY}
+# ticker_list = ticker_factory.keys()
 
-class TickerUSDJPY(Ticker):
-    __tablename__ = 'ticker_usd_jpy'
-class TickerEURJPY(Ticker):
-    __tablename__ = 'ticker_eur_jpy'
-class TickerGBPJPY(Ticker):
-    __tablename__ = 'ticker_gbp_jpy'
-class TickerAUDJPY(Ticker):
-    __tablename__ = 'ticker_aud_jpy'
-class TickerNZDJPY(Ticker):
-    __tablename__ = 'ticker_nzd_jpy'
-class TickerCADJPY(Ticker):
-    __tablename__ = 'ticker_cad_jpy'
-class TickerCHFJPY(Ticker):
-    __tablename__ = 'ticker_chf_jpy'
+def _symbol_to_tablename(symbol: str) -> str:
+    return f"ticker_{symbol.lower()}"
 
-ticker_factory = {'USD_JPY': TickerUSDJPY, 'EUR_JPY': TickerEURJPY}
-ticker_list = ticker_factory.keys()
+def build_ticker_factory(currency_list: list[str]) -> dict[str, type[Ticker]]:
+    """
+    currency_listからTickerXXXクラスを動的に生成してfactory(dict)を返す
+    """
+    factory: dict[str, type[Ticker]] = {}
+    for symbol in currency_list:
+        class_name = "Ticker" + symbol.replace("_", "")
+        attrs = {
+            "__tablename__": _symbol_to_tablename(symbol),
+            "__module__": __name__,
+        }
+        cls = type(class_name, (Ticker,), attrs)
+        factory[symbol] = cls
+    return factory
 
-
+currency_list = get_currencies()
+ticker_factory = build_ticker_factory(currency_list)
+ticker_list = list(ticker_factory.keys())
 
 
 class Streamer:
