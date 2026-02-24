@@ -1,19 +1,26 @@
 import asyncio
 import json
-import logging
 import os
 from datetime import datetime, timezone
+import logging
 
 from database.base import session_scope
 from sqlalchemy import text
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
 
+logger = logging.getLogger(__name__)
 
-WS_PATH = "/ws/ticker_usd_jpy"
+# WS_PATH = "/ws/ticker_usd_jpy"
+# SYMBOL = "USD_JPY"
+
+WS_PATH_LIST = [
+    {"symbol": "USD_JPY", "path": "/ws/ticker_usd_jpy"},
+]
+
+
 HEARTBEAT_INTERVAL_SECONDS = 30
 
-SYMBOL = "USD_JPY"
 DB_POLL_INTERVAL_SECONDS = float(os.getenv("DB_POLL_INTERVAL_SECONDS", "1.0"))
 DB_ERROR_RETRY_SECONDS = 3
 
@@ -25,6 +32,12 @@ def normalize_utc_timestamp(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
+
+def get_ws_path_list():
+    l = []
+    for item in WS_PATH_LIST:
+        l.append(item.get("path"))
+    return l
 
 #######################
 
@@ -118,7 +131,7 @@ def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetim
                 "ask": ask,
                 "timestamp": timestamp.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
                 "type": "ticker",
-                "symbol": SYMBOL,
+                "symbol": WS_PATH_LIST[0],
                 "mid": mid,
             })
 
@@ -130,7 +143,7 @@ def fetch_latest_row() -> tuple[datetime, float, float] | None:
     sql = text(
         """
         SELECT time, bid, ask
-        FROM ticker_usd_jpy
+        FROM ticker.ticker_usd_jpy
         ORDER BY time DESC
         LIMIT 1; 
         """
@@ -147,7 +160,7 @@ def fetch_rows_after(last_processed_time: datetime) -> list[tuple[datetime, floa
     sql = text(
         """
         SELECT time, bid, ask
-        FROM ticker_usd_jpy
+        FROM ticker.ticker_usd_jpy
         WHERE time > :last_time
         ORDER BY time;
         """
@@ -214,7 +227,8 @@ async def handler(client: ServerConnection) -> None:
     """
     # ws以外の接続を拒否する
     path = client.request.path
-    if path != WS_PATH:
+    path_list = get_ws_path_list()
+    if path not in path_list:
         await send_error_and_close(client, f"unsupported path: {path}")
         return
 
@@ -239,6 +253,10 @@ async def run_server() -> None:
         )
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     asyncio.run(run_server())
 
 
