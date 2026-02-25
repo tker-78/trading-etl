@@ -4,19 +4,35 @@ import os
 from datetime import datetime, timezone
 import logging
 
+from griffe import LastNodeError
+
 from database.base import session_scope
 from sqlalchemy import text
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed
+from dataclasses import dataclass
 
 logger = logging.getLogger(__name__)
 
-# WS_PATH = "/ws/ticker_usd_jpy"
-# SYMBOL = "USD_JPY"
+@dataclass(frozen=True)
+class StreamConfig:
+    symbol: str
+    table: str
+    path: str
 
-WS_PATH_LIST = [
-    {"symbol": "USD_JPY", "path": "/ws/ticker_usd_jpy"},
-]
+PATH_CONFIG_BY_PATH = {
+    "ws/ticker_usd_jpy": StreamConfig(
+        symbol="USD_JPY",
+        table="ticker_usd_jpy",
+        path="ws/ticker_usd_jpy",
+    ),
+    "ws/ticker_eur_jpy": StreamConfig(
+        symbol="EUR_JPY",
+        table="ticker_eur_jpy",
+        path="ws/ticker_eur_jpy",
+    ),
+    # 通貨を追加する
+}
 
 
 HEARTBEAT_INTERVAL_SECONDS = 30
@@ -32,12 +48,6 @@ def normalize_utc_timestamp(dt: datetime) -> datetime:
     if dt.tzinfo is None:
         return dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(timezone.utc)
-
-def get_ws_path_list():
-    l = []
-    for item in WS_PATH_LIST:
-        l.append(item.get("path"))
-    return l
 
 #######################
 
@@ -80,8 +90,18 @@ class LatestTickerCache:
 
 ### instances generation ###
 
-registry = ClientRegistry()
-latest_ticker = LatestTickerCache()
+# registry = ClientRegistry()
+# latest_ticker = LatestTickerCache()
+
+# path毎にClientRegistryを作成する
+registry_by_path: dict[str, ClientRegistry] = {
+    path: ClientRegistry() for path in PATH_CONFIG_BY_PATH.keys()
+}
+
+# path毎にLatestTickerCacheを作成する
+latest_ticker_by_path: dict[str, LatestTickerCache] = {
+    path: LatestTickerCache() for path in PATH_CONFIG_BY_PATH.keys()
+}
 
 ############################
 
@@ -106,13 +126,23 @@ async def send_error_and_close(client: ServerConnection, message: str) -> None:
     )
     await client.close(code=1008, reason=message)
 
-async def broadcast(payload) -> None:
+async def broadcast_to_registry(registry: ClientRegistry, payload: dict):
     clients = await registry.snapshot()
     if not clients:
         return
     await asyncio.gather(*(send_json(client, payload) for client in clients), return_exceptions=True)
 
-def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetime, dict] | None:
+async def broadcast(payload) -> None:
+    # clients = await registry.snapshot()
+    # if not clients:
+    #     return
+    # await asyncio.gather(*(send_json(client, payload) for client in clients), return_exceptions=True)
+    await asyncio.gather(
+        *(broadcast_to_registry(registry, payload) for registry in registry_by_path.values()),
+        return_exceptions=True
+    )
+
+def normalize_ticker_record(row: tuple[datetime, float, float], symbol: str) -> tuple[datetime, dict] | None:
     """
     DBのレコードをwebsocket用に整形する
     """
@@ -131,7 +161,7 @@ def normalize_ticker_record(row: tuple[datetime, float, float]) -> tuple[datetim
                 "ask": ask,
                 "timestamp": timestamp.isoformat(timespec="milliseconds").replace("+00:00", "Z"),
                 "type": "ticker",
-                "symbol": WS_PATH_LIST[0],
+                "symbol": symbol,
                 "mid": mid,
             })
 
@@ -227,10 +257,13 @@ async def handler(client: ServerConnection) -> None:
     """
     # ws以外の接続を拒否する
     path = client.request.path
-    path_list = get_ws_path_list()
-    if path not in path_list:
+    config = PATH_CONFIG_BY_PATH.get(path)
+    if config is None:
         await send_error_and_close(client, f"unsupported path: {path}")
         return
+
+    registry = registry_by_path.get(path)
+    latest_ticker = latest_ticker_by_path.get(path)
 
     # clientの処理
     connected = await registry.add(client)
