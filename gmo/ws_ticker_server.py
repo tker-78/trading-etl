@@ -4,8 +4,7 @@ import os
 from datetime import datetime, timezone
 import logging
 
-from griffe import LastNodeError
-
+from config.config import SCHEMA_NAME_TICKER
 from database.base import session_scope
 from sqlalchemy import text
 from websockets.asyncio.server import ServerConnection, serve
@@ -21,17 +20,31 @@ class StreamConfig:
     path: str
 
 PATH_CONFIG_BY_PATH = {
-    "ws/ticker_usd_jpy": StreamConfig(
+    "/ws/ticker_usd_jpy": StreamConfig(
         symbol="USD_JPY",
         table="ticker_usd_jpy",
-        path="ws/ticker_usd_jpy",
+        path="/ws/ticker_usd_jpy",
     ),
-    "ws/ticker_eur_jpy": StreamConfig(
+    "/ws/ticker_eur_jpy": StreamConfig(
         symbol="EUR_JPY",
         table="ticker_eur_jpy",
-        path="ws/ticker_eur_jpy",
+        path="/ws/ticker_eur_jpy",
     ),
-    # 通貨を追加する
+    "/ws/ticker_aud_jpy": StreamConfig(
+        symbol="AUD_JPY",
+        table="ticker_aud_jpy",
+        path="/ws/ticker_aud_jpy",
+    ),
+    "/ws/ticker_chf_jpy": StreamConfig(
+        symbol="CHF_JPY",
+        table="ticker_chf_jpy",
+        path="/ws/ticker_chf_jpy",
+    ),
+    "/ws/ticker_gbp_jpy": StreamConfig(
+        symbol="GBP_JPY",
+        table="ticker_gbp_jpy",
+        path="/ws/ticker_gbp_jpy",
+    ),
 }
 
 
@@ -90,9 +103,6 @@ class LatestTickerCache:
 
 ### instances generation ###
 
-# registry = ClientRegistry()
-# latest_ticker = LatestTickerCache()
-
 # path毎にClientRegistryを作成する
 registry_by_path: dict[str, ClientRegistry] = {
     path: ClientRegistry() for path in PATH_CONFIG_BY_PATH.keys()
@@ -133,10 +143,6 @@ async def broadcast_to_registry(registry: ClientRegistry, payload: dict):
     await asyncio.gather(*(send_json(client, payload) for client in clients), return_exceptions=True)
 
 async def broadcast(payload) -> None:
-    # clients = await registry.snapshot()
-    # if not clients:
-    #     return
-    # await asyncio.gather(*(send_json(client, payload) for client in clients), return_exceptions=True)
     await asyncio.gather(
         *(broadcast_to_registry(registry, payload) for registry in registry_by_path.values()),
         return_exceptions=True
@@ -166,14 +172,14 @@ def normalize_ticker_record(row: tuple[datetime, float, float], symbol: str) -> 
             })
 
 
-def fetch_latest_row() -> tuple[datetime, float, float] | None:
+def fetch_latest_row(tablename: str) -> tuple[datetime, float, float] | None:
     """
     対象のテーブルから最新行を取得する
     """
     sql = text(
-        """
+        f"""
         SELECT time, bid, ask
-        FROM ticker.ticker_usd_jpy
+        FROM {SCHEMA_NAME_TICKER}.{tablename}
         ORDER BY time DESC
         LIMIT 1; 
         """
@@ -183,14 +189,14 @@ def fetch_latest_row() -> tuple[datetime, float, float] | None:
         row = session.execute(sql).first()
     return (row[0], row[1], row[2]) if row is not None else None
 
-def fetch_rows_after(last_processed_time: datetime) -> list[tuple[datetime, float, float]]:
+def fetch_rows_after(last_processed_time: datetime, tablename: str) -> list[tuple[datetime, float, float]]:
     """
     未処理のレコードを抽出する
     """
     sql = text(
-        """
+        f"""
         SELECT time, bid, ask
-        FROM ticker.ticker_usd_jpy
+        FROM {SCHEMA_NAME_TICKER}.{tablename}
         WHERE time > :last_time
         ORDER BY time;
         """
@@ -200,49 +206,53 @@ def fetch_rows_after(last_processed_time: datetime) -> list[tuple[datetime, floa
         rows = session.execute(sql, {"last_time": last_processed_time}).all()
     return [(row[0], row[1], row[2]) for row in rows]
 
-
-async def db_relay_loop() -> None:
+async def db_relay_loop_by_path(path_config: StreamConfig):
     """
-    未処理の行を検出して、配信する
+    通貨ペア毎に未処理の行を検出して、配信する
     """
+    latest_cache = latest_ticker_by_path[path_config.path]
+    registry = registry_by_path[path_config.path]
 
-    # 処理済みの時刻を割り出す
-    bootstrap_row = await asyncio.to_thread(fetch_latest_row)
-    last_processed_time = None
+    # 初期化
+    bootstrap_row = await asyncio.to_thread(fetch_latest_row, path_config.table)
+    last_processed_time: datetime | None = None
     if bootstrap_row is not None:
-        normalized_record = normalize_ticker_record(bootstrap_row)
         bootstrap_time = normalize_utc_timestamp(bootstrap_row[0])
         last_processed_time = bootstrap_time
 
+        normalized_record = normalize_ticker_record(bootstrap_row, symbol=path_config.symbol)
         if normalized_record is not None:
             _, payload = normalized_record
-            await latest_ticker.set(payload)
+            await latest_cache.set(payload)
 
-    # 処理済みの時刻以降のレコードを配信する
     while True:
         try:
-            rows = await asyncio.to_thread(fetch_rows_after, last_processed_time)
+            rows = await asyncio.to_thread(fetch_rows_after, last_processed_time, path_config.table)
             for row in rows:
                 current_time = normalize_utc_timestamp(row[0])
-                payload = normalize_ticker_record(row)
-                if payload is None:
+                normalized = normalize_ticker_record(row, symbol=path_config.symbol)
+                if normalized is None:
                     last_processed_time = current_time
                     continue
-                _, ticker_payload = payload
-                await latest_ticker.set(ticker_payload)
-                await broadcast(ticker_payload)
+
+                _, payload = normalized
+                await latest_cache.set(payload)
+                await broadcast_to_registry(registry, payload)
                 last_processed_time = current_time
+
             await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
+
         except Exception:
-            await broadcast(
+            await broadcast_to_registry(
+                registry,
                 {
-                    "type": "error",
-                    "code": "DB_POLLING_FAILED",
-                    "message": "ticker db polling failed",
-                    "timestamp": utc_now_iso(),
+                    'type': 'error',
+                    'code': 'DB_POLLING_FAILED',
+                    'message': f'ticker db polling failed: {path_config.symbol}',
+                    'timestamp': utc_now_iso(),
                 }
             )
-            await asyncio.sleep(DB_POLL_INTERVAL_SECONDS)
+            await asyncio.sleep(DB_ERROR_RETRY_SECONDS)
 
 async def heart_beat_loop():
     while True:
@@ -257,8 +267,8 @@ async def handler(client: ServerConnection) -> None:
     """
     # ws以外の接続を拒否する
     path = client.request.path
-    config = PATH_CONFIG_BY_PATH.get(path)
-    if config is None:
+    path_config = PATH_CONFIG_BY_PATH.get(path)
+    if path_config is None:
         await send_error_and_close(client, f"unsupported path: {path}")
         return
 
@@ -277,12 +287,13 @@ async def handler(client: ServerConnection) -> None:
 
 async def run_server() -> None:
     host = os.getenv("WS_HOST", "0.0.0.0")
-    port = os.getenv("WS_PORT", "8765")
+    port = os.getenv("WS_PORT", 8765)
 
     async with serve(handler, host=host, port=port):
+        relay_tasks = [db_relay_loop_by_path(config) for config in PATH_CONFIG_BY_PATH.values()]
         await asyncio.gather(
             heart_beat_loop(),
-            db_relay_loop(),
+            *relay_tasks,
         )
 
 if __name__ == "__main__":

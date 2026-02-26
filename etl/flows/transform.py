@@ -3,7 +3,7 @@ import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
 from sqlalchemy.sql.elements import quoted_name
-from config import *
+from config.config import *
 
 
 ##### helpers: start ########

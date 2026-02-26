@@ -67,7 +67,7 @@ services:
   ws-ticker-server:
     build: .
     working_dir: /app
-    command: python gmo/ws_ticker_server.py
+    command: python -m gmo.ws_ticker_server
     environment:
       PYTHONPATH: /app
       WS_HOST: 0.0.0.0
@@ -77,6 +77,7 @@ services:
     volumes:
       - ./gmo:/app/gmo
       - ./database:/app/database
+      - ./config:/app/config
     ports:
       - "8765:8765"
     restart: always
