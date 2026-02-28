@@ -61,6 +61,7 @@ services:
       - flow-storage:/flow-storage
       - ./etl:/app/etl
       - ./gmo:/app/gmo
+      - ./config:/app/config
       - ./database:/app/database
     restart: always
 
