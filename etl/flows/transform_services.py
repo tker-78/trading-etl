@@ -32,6 +32,22 @@ def create_ticker_tables(connector):
 
 
 ######### create OHLC tables: end ##############
+def create_ohlc_tables(connector: SqlAlchemyConnector, *, currency_pair_code: str, timeframe_code: str):
+    """
+    各通貨ペアのテーブルを作成する
+    """
+    schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
+    ohlc_table = quoted_name(helpers.ohlc_table(currency_pair_code, timeframe_code), quote=True)
+    query = f"""
+    CREATE TABLE IF NOT EXISTS {schema_name}.{ohlc_table} (
+        time TIMESTAMP PRIMARY KEY,
+        open FLOAT,
+        high FLOAT,
+        low FLOAT,
+        close FLOAT
+    );
+    """
+    connector.execute(query)
 
 
 

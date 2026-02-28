@@ -1,9 +1,10 @@
-from prefect import flow, task
+from prefect import flow
 
 from prefect_sqlalchemy import SqlAlchemyConnector
 from config.config import *
 from transform_tasks import (
 create_ticker_tables_task,
+create_ohlc_tables_task,
 update_ohlc_base_tables_task,
 update_rsi_task,
 update_ema_task,
@@ -20,9 +21,26 @@ import transform_helpers as helpers
 def ticker(block_name: str = "forex-connector"):
     create_ticker_tables_task(block_name)
 
+@flow
+def create_ohlc_tables(block_name = "forex-connector"):
+    query = f"""
+    SELECT DISTINCT currency_pair_code
+    FROM dim_currency;
+    """
+    currencies = list(SqlAlchemyConnector.load(block_name).execute(query).scalars())
+
+    query = f"""
+    SELECT DISTINCT timeframe_code
+    FROM dim_timeframe;
+    """
+    timeframes = list(SqlAlchemyConnector.load(block_name).execute(query).scalars())
+
+    for currency in currencies:
+        for timeframe in timeframes:
+            create_ohlc_tables_task.submit(block_name, currency, timeframe)
 
 @flow
-def ohlc_base_tables(block_name = "forex-connector",):
+def update_ohlc_base_tables(block_name = "forex-connector"):
     currencies = None
     timeframes = None
 
@@ -108,6 +126,7 @@ def strategy(block_name: str = "forex-connector"):
 
 
 if __name__ == "__main__":
-    ohlc_base_tables()
+    create_ohlc_tables()
+    update_ohlc_base_tables()
     # indicator()
     # ticker()

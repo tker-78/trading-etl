@@ -2,6 +2,7 @@ from prefect import task
 from prefect_sqlalchemy import SqlAlchemyConnector
 from transform_services import (
 create_ticker_tables,
+create_ohlc_tables,
 update_ohlc_base_tables,
 update_usd_jpy_1h,
 update_usd_jpy_4h,
@@ -11,7 +12,7 @@ update_ema,
 update_rsi,
 update_sma,
 insert_sma_golden_cross,
-insert_sma_dead_cross
+insert_sma_dead_cross,
 )
 import transform_helpers as helpers
 
@@ -26,6 +27,11 @@ def create_ticker_tables_task(block_name: str):
 def update_ohlc_base_tables_task(block_name: str, currency_pair_code: str, timeframe_code: str):
     with SqlAlchemyConnector.load(block_name) as conn:
         update_ohlc_base_tables(conn, currency_pair_code=currency_pair_code, timeframe_code=timeframe_code)
+
+@task(retries=2, retry_delay_seconds=30, log_prints=True)
+def create_ohlc_tables_task(block_name: str, currency_pair_code: str, timeframe_code: str):
+    with SqlAlchemyConnector.load(block_name) as conn:
+        create_ohlc_tables(conn, currency_pair_code=currency_pair_code, timeframe_code=timeframe_code)
 
 # @task(retries=2, retry_delay_seconds=30, log_prints=True)
 # def update_usd_jpy_1m_task(block_name: str):
