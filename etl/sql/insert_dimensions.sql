@@ -12,4 +12,5 @@ VALUES ('1m', '1min', 60),
        ('5m', '5min', 300),
        ('30m', '30min', 1800),
        ('1h', '1hour', 3600),
-       ('4h', '4hour', 14400);
+       ('4h', '4hour', 14400)
+ON CONFLICT DO NOTHING;

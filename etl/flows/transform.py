@@ -2,7 +2,7 @@ from prefect import flow
 
 from prefect_sqlalchemy import SqlAlchemyConnector
 from config.config import *
-from transform_tasks import (
+from etl.flows.transform_tasks import (
 create_ticker_tables_task,
 create_ohlc_tables_task,
 update_ohlc_base_tables_task,
@@ -13,7 +13,7 @@ update_sma_task,
 insert_dead_cross_task,
 insert_golden_cross_task,
 )
-import transform_helpers as helpers
+import etl.flows.transform_helpers as helpers
 
 
 @flow
