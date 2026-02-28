@@ -53,13 +53,16 @@ def create_ohlc_tables(connector: SqlAlchemyConnector, *, currency_pair_code: st
 
 ######### update OHLC tables ##############
 
-def update_ohlc_base_tables(connector: SqlAlchemyConnector, *, currency_pair_code: str, timeframe_code: str):
+def update_ohlc_base_tables(
+        connector: SqlAlchemyConnector,
+        currency_pair_code: str,
+        base_timeframe_code: str):
     """
     各通貨ペアのベースになるohlc(デフォルトは1 minute)のデータを生成する。
     """
     ohlc_schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
     ticker_schema_name = quoted_name(SCHEMA_NAME_TICKER, quote=True)
-    ohlc_table = quoted_name(helpers.ohlc_table(currency_pair_code, timeframe_code), quote=True)
+    ohlc_table = quoted_name(helpers.ohlc_table(currency_pair_code, base_timeframe_code), quote=True)
 
     query = f"""
     INSERT INTO {ohlc_schema_name}.{ohlc_table} (time, open, high, low, close)
@@ -86,138 +89,45 @@ def update_ohlc_base_tables(connector: SqlAlchemyConnector, *, currency_pair_cod
     """
     connector.execute(query)
 
+def update_ohlc_derived_tables(
+        connector: SqlAlchemyConnector,
+        currency_pair_code: str,
+        timeframe_code: str,
+        timeframe_duration_seconds: int,
+        base_timeframe_code: str = '1m'):
+    ohlc_schema_name = quoted_name(SCHEMA_NAME_OHLC, quote=True)
+    # ohlc_base_table = quoted_name(f"{currency_pair_code.replace("/", "_").lower()}_{base_timeframe_code}", quote=True)
+    ohlc_base_table = quoted_name(helpers.ohlc_table(currency_pair_code, base_timeframe_code), quote=True)
+    ohlc_derived_table = quoted_name(helpers.ohlc_table(currency_pair_code, timeframe_code), quote=True)
 
 
-# def update_usd_jpy_1m(connector):
-#     query = """
-# INSERT INTO ohlc.usd_jpy_1m (time, open, high, low, close)
-# WITH bucket_time AS (
-# SELECT
-#     DATE_TRUNC('minute', time) AS bucket,
-#     time,
-#     bid
-# FROM ticker.ticker_usd_jpy
-# )
-# SELECT
-# bucket AS time,
-# (array_agg(bid ORDER BY time))[1] AS open,
-# MAX(bid) AS high,
-# MIN(bid) AS low,
-# (array_agg(bid ORDER BY time DESC))[1] AS close
-# FROM bucket_time
-# GROUP BY bucket
-# ON CONFLICT DO NOTHING;
-#     """
-#     connector.execute(query)
-
-def update_usd_jpy_5m(connector):
-    query = """
-            INSERT INTO ohlc.usd_jpy_5m (time, open, high, low, close)
-            WITH bucket_time AS (
-                SELECT
-                    date_trunc('minute', time) - (EXTRACT(minute FROM time)::int % 5) * interval  '1 minute' AS bucket,
-                    time,
-                    open,
-                    high,
-                    low,
-                    close
-                FROM ohlc.usd_jpy_1m
-            )
-            SELECT
-                bucket AS time,
-                (array_agg(open ORDER BY bucket))[1] AS open,
-                MAX(high) AS high,
-                MIN(low) AS low,
-                (array_agg(close ORDER BY time DESC))[1] AS close
-            FROM bucket_time
-            GROUP BY bucket
-            ON CONFLICT DO NOTHING; \
-            """
-    connector.execute(query)
-
-def update_usd_jpy_30m(connector):
-    query = """
-            INSERT INTO ohlc.usd_jpy_30m (time, open, high, low, close)
-            WITH bucket_time AS (
-                SELECT
-                    date_trunc('minute', time) - (EXTRACT(minute FROM time)::int % 30) * interval  '1 minute' AS bucket,
-                    time,
-                    open,
-                    high,
-                    low,
-                    close
-                FROM ohlc.usd_jpy_1m
-            )
-            SELECT
-                bucket AS time,
-                (array_agg(open ORDER BY bucket))[1] AS open,
-                MAX(high) AS high,
-                MIN(low) AS low,
-                (array_agg(close ORDER BY time DESC))[1] AS close
-            FROM bucket_time
-            GROUP BY bucket
-            ON CONFLICT DO NOTHING; \
-            """
-    connector.execute(query)
-
-def update_usd_jpy_1h(connector):
-    query = """
-            INSERT INTO ohlc.usd_jpy_1h (time, open, high, low, close)
-            WITH bucket_time AS (
-                SELECT
-                    date_trunc('hour', time) AS bucket,
-                    time,
-                    open,
-                    high,
-                    low,
-                    close
-                FROM ohlc.usd_jpy_1m
-            )
-            SELECT
-                bucket AS time,
-                (array_agg(open ORDER BY time))[1] AS open,
-                MAX(high) AS high,
-                MIN(low) AS low,
-                (array_agg(close ORDER BY time DESC))[1] AS close
-            FROM bucket_time
-            GROUP BY bucket
-            ON CONFLICT DO NOTHING; \
-            """
-    connector.execute(query)
-
-def update_usd_jpy_4h(connector):
-    query = """
-            INSERT INTO ohlc.usd_jpy_4h (time, open, high, low, close)
-            WITH bucket_time AS (
-                SELECT
-                    date_trunc('hour', time) - (EXTRACT(hour FROM time)::int % 4) * interval '1 hour' AS bucket,
-                    time,
-                    open,
-                    high,
-                    low,
-                    close
-                FROM ohlc.usd_jpy_1m
-            )
-            SELECT
-                bucket AS time,
-                (array_agg(open ORDER BY time))[1] AS open,
-                MAX(high) AS high,
-                MIN(low) AS low,
-                (array_agg(close ORDER BY time DESC))[1] AS close
-            FROM bucket_time
-            GROUP BY bucket
-            ON CONFLICT DO NOTHING; \
-            """
-    connector.execute(query)
+    query = f"""
+    INSERT INTO {ohlc_schema_name}.{ohlc_derived_table} (time, open, high, low, close)
+    WITH bucket_time AS (
+    SELECT
+    to_timestamp( 
+        floor(EXTRACT(epoch FROM time) / :timeframe_duration_seconds ) * :timeframe_duration_seconds
+    ) AS bucket,
+    time, open, high, low, close 
+    FROM {ohlc_schema_name}.{ohlc_base_table}
+    )
+    SELECT 
+    bucket AS time,
+    (array_agg(open ORDER BY time))[1] AS open, -- open
+    MAX(high) AS high, -- high
+    MIN(low) AS low, --low
+    (array_agg(close ORDER BY time DESC))[1] AS close -- close
+    FROM bucket_time
+    GROUP BY bucket
+    ON CONFLICT DO NOTHING;
+    """
+    connector.execute(query, {"timeframe_duration_seconds": timeframe_duration_seconds})
 
 ######### update OHLC tables: end ##############
 
 
 
 ######## update indicators: start #############
-
-
-
 
 def update_rsi(connector,
                *,

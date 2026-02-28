@@ -6,6 +6,7 @@ from transform_tasks import (
 create_ticker_tables_task,
 create_ohlc_tables_task,
 update_ohlc_base_tables_task,
+update_ohlc_derived_tables_task,
 update_rsi_task,
 update_ema_task,
 update_sma_task,
@@ -15,11 +16,14 @@ insert_golden_cross_task,
 import transform_helpers as helpers
 
 
-######## flows: start ########
-
 @flow
 def ticker(block_name: str = "forex-connector"):
     create_ticker_tables_task(block_name)
+
+@flow
+def ohlc_pipeline(block_name: str = "forex-connector"):
+    create_state = create_ohlc_tables.with_options(name="create-ohlc")(block_name)
+    update_ohlc_tables.with_options(name="update-ohlc")(block_name, wait_for=[create_state])
 
 @flow
 def create_ohlc_tables(block_name = "forex-connector"):
@@ -40,9 +44,10 @@ def create_ohlc_tables(block_name = "forex-connector"):
             create_ohlc_tables_task.submit(block_name, currency, timeframe)
 
 @flow
-def update_ohlc_base_tables(block_name = "forex-connector"):
+def update_ohlc_tables(block_name = "forex-connector"):
     currencies = None
     timeframes = None
+    base_timeframe_code = "1m"
 
     query = f"""
     SELECT DISTINCT currency_pair_code
@@ -50,24 +55,28 @@ def update_ohlc_base_tables(block_name = "forex-connector"):
     """
     currencies = list(SqlAlchemyConnector.load(block_name).execute(query).scalars())
 
-    for currency in currencies:
-        update_ohlc_base_tables_task.submit(block_name, currency, "1m")
+    query = f"""
+    SELECT DISTINCT timeframe_code, duration_seconds
+    FROM dim_timeframe;
+    """
+    result = SqlAlchemyConnector.load(block_name).execute(query)
+    timeframes = result.all()
+    timeframes_dict = {timeframe_code: duration_seconds for timeframe_code, duration_seconds in timeframes}
+    print(timeframes_dict)
 
+    for currency_pair_code in currencies:
+        base_future = update_ohlc_base_tables_task.submit(block_name, currency_pair_code, base_timeframe_code)
+        for timeframe in timeframes_dict:
+            if timeframe != base_timeframe_code:
+                update_ohlc_derived_tables_task.submit(
+                    block_name,
+                    currency_pair_code,
+                    timeframe,
+                    timeframes_dict[timeframe],
+                    base_timeframe_code,
+                    wait_for=[base_future]
+                )
 
-# @flow
-# def ohlc(block_name: str = "forex-connector"):
-#     # 最初に実行
-#     t1 = update_usd_jpy_1m_task(block_name)
-#
-#     # 他は並列で実行
-#     t2 = update_usd_jpy_5m_task.submit(block_name)
-#     t3 = update_usd_jpy_30m_task.submit(block_name)
-#     t4 = update_usd_jpy_1h_task.submit(block_name)
-#     t5 = update_usd_jpy_4h_task.submit(block_name)
-#
-#     futures = [t2, t3, t4, t5]
-#
-#     return futures
 
 @flow
 def indicator(block_name: str = "forex-connector"):
@@ -121,12 +130,8 @@ def strategy(block_name: str = "forex-connector"):
     insert_golden_cross_task(block_name)
     insert_dead_cross_task(block_name)
 
-######## flows: start ########
-
 
 
 if __name__ == "__main__":
-    create_ohlc_tables()
-    update_ohlc_base_tables()
+    ohlc_pipeline()
     # indicator()
-    # ticker()

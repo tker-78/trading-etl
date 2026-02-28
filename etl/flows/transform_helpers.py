@@ -8,6 +8,7 @@ def ohlc_table(currency_pair_code: str, timeframe_code: str):
     return f"{currency_pair_code.replace('/', '_').lower()}_{timeframe_code}"
 
 
+
 def get_ids(connector, currency_pair_code: str, timeframe_code: str) -> tuple[int, int]:
     currency_id_result = connector.execute(
         """
