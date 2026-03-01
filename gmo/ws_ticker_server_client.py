@@ -1,4 +1,5 @@
-import asyncio, websockets
+import asyncio
+import websockets
 
 async def main():
     uri = "ws://0.0.0.0:8765/ws/ticker_gbp_jpy"

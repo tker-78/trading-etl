@@ -9,7 +9,7 @@ import transform_helpers as helpers
 def create_ticker_tables(connector):
     select_query = """
                    SELECT currency_pair_code
-                   FROM dim_currency; \
+                   FROM dim_currency; 
                    """
     rows = connector.execute(select_query).all()
 
@@ -229,7 +229,7 @@ def update_sma(connector,
     currency_id, timeframe_id = helpers.get_ids(connector, currency_pair_code, timeframe_code)
 
     last_sma_result = connector.execute(
-        f"""
+        """
         SELECT MAX(time)
         FROM fact_sma
         WHERE period = :period
@@ -307,7 +307,7 @@ def update_ema(connector,
     currency_id, timeframe_id = helpers.get_ids(connector, currency_pair_code, timeframe_code)
 
     last_ema_result = connector.execute(
-        f"""
+        """
         SELECT MAX(time)
         FROM fact_ema
         WHERE period = :period
@@ -448,7 +448,7 @@ def insert_sma_golden_cross(connector,
 
 
 def insert_sma_dead_cross(connector,*, short_period: int, long_period: int):
-    query = f"""
+    query = """
     INSERT INTO fact_buysell_events (
         event_datetime, 
         currency_id, 

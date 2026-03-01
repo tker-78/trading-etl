@@ -27,13 +27,13 @@ def ohlc_pipeline(block_name: str = "forex-connector"):
 
 @flow
 def create_ohlc_tables(block_name = "forex-connector"):
-    query = f"""
+    query = """
     SELECT DISTINCT currency_pair_code
     FROM dim_currency;
     """
     currencies = list(SqlAlchemyConnector.load(block_name).execute(query).scalars())
 
-    query = f"""
+    query = """
     SELECT DISTINCT timeframe_code
     FROM dim_timeframe;
     """
@@ -49,13 +49,13 @@ def update_ohlc_tables(block_name = "forex-connector"):
     timeframes = None
     base_timeframe_code = "1m"
 
-    query = f"""
+    query = """
     SELECT DISTINCT currency_pair_code
     FROM dim_currency;
     """
     currencies = list(SqlAlchemyConnector.load(block_name).execute(query).scalars())
 
-    query = f"""
+    query = """
     SELECT DISTINCT timeframe_code, duration_seconds
     FROM dim_timeframe;
     """
