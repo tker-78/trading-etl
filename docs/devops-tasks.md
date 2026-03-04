@@ -27,6 +27,18 @@
     - OHLC / indicator / strategy のスモークテストを追加する。
     - 多通貨1ケース（`USD/JPY`以外を含む）を追加する。
     - 再実行安全性（重複挿入されないこと）を確認する。
+- 実装方針（2. 多通貨1ケース）:
+    1. テスト対象は `update_ohlc_tables` を主対象にする（多通貨ループの本体）。
+    2. `SqlAlchemyConnector.load(...).execute(...)` をモックし、通貨ペアを2件返す:
+        - 例: `["USD/JPY", "EUR/JPY"]`
+        - 時間足は最小構成（例: `("1m", 60), ("5m", 300)`）を返す。
+    3. `update_ohlc_base_tables_task.submit` / `update_ohlc_derived_tables_task.submit` をダミー化して呼び出し履歴を検証する。
+    4. 検証観点:
+        - `base` が `USD/JPY` と `EUR/JPY` の両方で1回ずつ呼ばれること。
+        - `derived` が両通貨で呼ばれること（`1m` 以外の時間足分）。
+        - `derived` の `wait_for` が同一通貨の `base_future` を参照していること。
+    5. 任意で `create_ohlc_tables` も追加検証し、通貨2件 × 時間足2件で `submit` が4回呼ばれることを確認する。
+    6. 実装順はTDDに合わせ、まず failing な最小テストを追加してから実装・修正する。
 - 工数目安:
     - 1〜2日
 - 完了条件:
