@@ -4,6 +4,10 @@ class _DummyTask:
     def __init__(self):
         self.calls = []
 
+    def submit(self, block_name, **kwargs):
+        self.calls.append({"block_name": block_name, **kwargs})
+        return object()
+
 class _DummyFlow:
     def __init__(self, return_value):
         self.return_value = return_value
@@ -47,8 +51,61 @@ def test_transform_ohlc_pipeline_smoke(monkeypatch):
 
 
 def test_transform_indicator_smoke(monkeypatch):
-    pass
+    rsi_task = _DummyTask()
+    sma_task = _DummyTask()
+    ema_task = _DummyTask()
+
+    monkeypatch.setattr(transform, "update_rsi_task", rsi_task)
+    monkeypatch.setattr(transform, "update_sma_task", sma_task)
+    monkeypatch.setattr(transform, "update_ema_task", ema_task)
+
+    monkeypatch.setattr(transform, "RSI_FLOW_DEFAULT_PARAMS", {"periods": [14], "timeframes": ["1m"]})
+    monkeypatch.setattr(transform, "SMA_FLOW_DEFAULT_PARAMS", {"periods": [15], "timeframes": ["5m"]})
+    monkeypatch.setattr(transform, "EMA_FLOW_DEFAULT_PARAMS", {"periods": [16], "timeframes": ["10m"]})
+
+    monkeypatch.setattr(transform.helpers, "build_rsi_params", lambda: {"currency_pair_code": "USD/JPY"})
+
+    futures = transform.indicator.fn(block_name="test-connector")
+
+    assert len(futures) == 3
+
+    assert rsi_task.calls[0]["block_name"] == "test-connector"
+    assert rsi_task.calls[0]["rsi_params"]["period"] == 14
+    assert rsi_task.calls[0]["rsi_params"]["timeframe_code"] == "1m"
+
+    assert sma_task.calls[0]["block_name"] == "test-connector"
+    assert sma_task.calls[0]["sma_params"]["period"] == 15
+    assert sma_task.calls[0]["sma_params"]["timeframe_code"] == "5m"
+
+    assert ema_task.calls[0]["block_name"] == "test-connector"
+    assert ema_task.calls[0]["ema_params"]["period"] == 16
+    assert ema_task.calls[0]["ema_params"]["timeframe_code"] == "10m"
+
+
 
 def test_transform_strategy_smoke():
     pass
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
