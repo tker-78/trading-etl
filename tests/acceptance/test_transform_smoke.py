@@ -83,8 +83,24 @@ def test_transform_indicator_smoke(monkeypatch):
 
 
 
-def test_transform_strategy_smoke():
-    pass
+def test_transform_strategy_smoke(monkeypatch):
+    calls = []
+
+    def _golden(block_name):
+        calls.append(("golden", block_name))
+
+    def _dead(block_name):
+        calls.append(("dead", block_name))
+
+    monkeypatch.setattr(transform, "insert_golden_cross_task", _golden)
+    monkeypatch.setattr(transform, "insert_dead_cross_task", _dead)
+
+    transform.strategy.fn(block_name="test-connector")
+
+    assert calls == [("golden", "test-connector"), ("dead", "test-connector")]
+
+
+
 
 
 
