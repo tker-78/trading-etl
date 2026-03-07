@@ -1,3 +1,6 @@
+## DevOps Tasks Index
+
+提案したブランチ境界に合わせ、`T8〜T13` は1タスク=1ドキュメントに分割。
 
 ## T7: CI整備（壊れたら即検知）
 
@@ -20,82 +23,24 @@
     - `lint` と `pytest` の結果がGitHub上で確認できる。
     - 失敗時にCIが即時失敗として表示される。
 
+## T8〜T13（分割済み）
 
-## T8: transform系の最小受け入れテスト
+- T8: [`docs/devops-tasks/t8-transform-tests.md`](docs/devops-tasks/t8-transform-tests.md)
+  - 推奨ブランチ: `feature/t8-transform-tests`
+- T9: [`docs/devops-tasks/t9-config-env.md`](docs/devops-tasks/t9-config-env.md)
+  - 推奨ブランチ: `feature/t9-config-env`
+- T10: [`docs/devops-tasks/t10-performance-index.md`](docs/devops-tasks/t10-performance-index.md)
+  - 推奨ブランチ: `feature/t10-performance-index`
+- T11: [`docs/devops-tasks/t11-retention-policy.md`](docs/devops-tasks/t11-retention-policy.md)
+  - 推奨ブランチ: `feature/t11-retention-policy`
+- T12: [`docs/devops-tasks/t12-migration-alembic.md`](docs/devops-tasks/t12-migration-alembic.md)
+  - 推奨ブランチ: `feature/t12-migration-alembic`
+- T13: [`docs/devops-tasks/t13-monitoring-alert.md`](docs/devops-tasks/t13-monitoring-alert.md)
+  - 推奨ブランチ: `feature/t13-monitoring-alert`
 
-- 内容:
-    - OHLC / indicator / strategy のスモークテストを追加する。
-    - 多通貨1ケース（`USD/JPY`以外を含む）を追加する。
-    - 再実行安全性（重複挿入されないこと）を確認する。
-- 実装方針（2. 多通貨1ケース）:
-    1. テスト対象は `update_ohlc_tables` を主対象にする（多通貨ループの本体）。
-    2. `SqlAlchemyConnector.load(...).execute(...)` をモックし、通貨ペアを2件返す:
-        - 例: `["USD/JPY", "EUR/JPY"]`
-        - 時間足は最小構成（例: `("1m", 60), ("5m", 300)`）を返す。
-    3. `update_ohlc_base_tables_task.submit` / `update_ohlc_derived_tables_task.submit` をダミー化して呼び出し履歴を検証する。
-    4. 検証観点:
-        - `base` が `USD/JPY` と `EUR/JPY` の両方で1回ずつ呼ばれること。
-        - `derived` が両通貨で呼ばれること（`1m` 以外の時間足分）。
-        - `derived` の `wait_for` が同一通貨の `base_future` を参照していること。
-    5. 任意で `create_ohlc_tables` も追加検証し、通貨2件 × 時間足2件で `submit` が4回呼ばれることを確認する。
-    6. 実装順はTDDに合わせ、まず failing な最小テストを追加してから実装・修正する。
-- 工数目安:
-    - 1〜2日
-- 完了条件:
-    - 主要フローの最低限テストが通る。
+## 依存メモ
 
-
-## T9: 設定の外部化（最小）
-
-- 内容:
-    - 通貨ペア・時間足・period を環境変数で上書き可能にする。
-- 工数目安:
-    - 半日〜1日
-- 完了条件:
-    - `config.py` 固定値に依存せず実行パラメータを切り替えできる。
-
-
-## T10: 性能対策（計測ベース）
-
-- 内容:
-    - `EXPLAIN ANALYZE` で遅いクエリを特定する。
-    - 実測結果に基づき必要最小限のインデックスを追加する。
-- 工数目安:
-    - 1日
-- 完了条件:
-    - ボトルネッククエリの実測改善を確認できる。
-
-
-## T11: データ保持方針の実装
-
-- 内容:
-    - ticker生データの保持期間を定義する。
-    - 集約後データのアーカイブ/削除ルールを定義して実装する。
-- 工数目安:
-    - 半日
-- 完了条件:
-    - 保持・削除ルールがSQLまたは運用手順として固定される。
-
-
-## T12: DBマイグレーション管理導入
-
-- 内容:
-    - Alembic等を導入し、DDL変更を履歴管理する。
-- 工数目安:
-    - 1〜2日
-- 完了条件:
-    - 新規のスキーマ変更がマイグレーション経由で適用できる。
-
-
-## T13: 運用監視・アラート
-
-- 内容:
-    - フロー失敗率、遅延、最終更新時刻を可視化する。
-    - 閾値超過時の通知を追加する。
-- 工数目安:
-    - 1日〜
-- 完了条件:
-    - 異常時に自動検知・通知できる。
+- `T10`（性能対策）は `T12`（マイグレーション管理）と依存しやすいため、`T12` を先行または同時進行推奨。
 
 
 ## 進捗記録
