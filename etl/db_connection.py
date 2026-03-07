@@ -11,11 +11,14 @@ def db_connection():
         password=SecretStr("postgres"),
         host="forex-db",
         port=5432,
-        database="forex"
+        database="forex",
     )
 
     connector = SqlAlchemyConnector(connection_info=connection_info)
     connector.save("forex-connector")
 
-if __name__ == "__main__":
     db_connection()
+
+
+if __name__ == "__main__":
+    ...
