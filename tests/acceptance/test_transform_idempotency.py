@@ -34,6 +34,8 @@ class _FakeConnector:
             return _FakeExecuteResult(["USD/JPY", "EUR/JPY"])
         if "SELECT DISTINCT timeframe_code, duration_seconds FROM dim_timeframe;" in normalized:
             return _FakeExecuteResult([("1m", 60), ("5m", 300)])
+        if "SELECT DISTINCT timeframe_code FROM dim_timeframe;" in normalized:
+            return _FakeExecuteResult(["1m", "5m"])
         raise AssertionError(f"Unexpected query: {normalized}")
 
 class _FakeSqlAlchemyConnector:
@@ -42,6 +44,16 @@ class _FakeSqlAlchemyConnector:
     @classmethod
     def load(cls, _block_name):
         return cls.connector
+
+class _CaptureConnector:
+    """
+    発行したクエリを保存し、空のリザルトを返す
+    """
+    def __init__(self):
+        self.calls = []
+    def execute(self, query, params=None):
+        self.calls.append({"query": query, "params": params})
+        return _FakeExecuteResult([])
 
 
 
@@ -75,3 +87,31 @@ def test_update_ohlc_tables_multi_pair_wait_for(monkeypatch):
     for call in derived_task.calls:
         pair = call["args"][1]
         assert call["kwargs"]["wait_for"] == [base_future_by_pair[pair]]
+
+def test_create_ohlc_tables_submits_all_currency_timeframe_pairs(monkeypatch):
+    create_task = _RecordingTask()
+
+    monkeypatch.setattr(transform, "SqlAlchemyConnector", _FakeSqlAlchemyConnector)
+    monkeypatch.setattr(transform, "create_ohlc_tables_task", create_task)
+    _FakeSqlAlchemyConnector.connector.queries.clear()
+
+    transform.create_ohlc_tables.fn(block_name="test-connector")
+
+    assert len(create_task.calls) == 4
+
+
+
+def test_ohlc_update_queries_use_on_conflict_do_nothing():
+    connector = _CaptureConnector()
+
+    transform_services.update_ohlc_base_tables(connector, "USD/JPY", "1m")
+    transform_services.update_ohlc_derived_tables(connector, "USD/JPY", "5m", 300, "1m")
+
+    assert len(connector.calls) == 2
+
+
+
+
+
+
+
