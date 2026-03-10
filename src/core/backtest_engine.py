@@ -1,6 +1,6 @@
 # backtest engine
 from typing import Optional
-from database.base import session_scope
+from src.database.base import session_scope
 
 class BacktestEngine: pass
 

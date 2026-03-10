@@ -2,8 +2,8 @@ from sqlalchemy.sql.elements import quoted_name
 import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
-from config.config import *
-import etl.flows.transform_helpers as helpers
+from src.config.config import *
+import src.etl.flows.transform_helpers as helpers
 
 ######### create ticker tables: start #########
 def create_ticker_tables(connector):

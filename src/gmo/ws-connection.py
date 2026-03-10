@@ -4,8 +4,8 @@ import time
 import websocket
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
-from database.base import session_scope
-from database.base import Base
+from src.database.base import session_scope
+from src.database.base import Base
 from sqlalchemy import Column, DateTime, Float, text
 
 UTC = timezone.utc

@@ -1,6 +1,6 @@
 from prefect import task
 from prefect_sqlalchemy import SqlAlchemyConnector
-from etl.flows.transform_services import (
+from src.etl.flows.transform_services import (
 create_ticker_tables,
 create_ohlc_tables,
 update_ohlc_base_tables,
@@ -11,7 +11,7 @@ update_sma,
 insert_sma_golden_cross,
 insert_sma_dead_cross,
 )
-import etl.flows.transform_helpers as helpers
+import src.etl.flows.transform_helpers as helpers
 
 ######## tasks: start ########
 

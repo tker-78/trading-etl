@@ -4,8 +4,8 @@ import os
 from datetime import datetime, timezone
 import logging
 
-from config.config import SCHEMA_NAME_TICKER
-from database.base import session_scope
+from src.config.config import SCHEMA_NAME_TICKER
+from src.database.base import session_scope
 from sqlalchemy import text
 from websockets.asyncio.server import ServerConnection, serve
 from websockets.exceptions import ConnectionClosed

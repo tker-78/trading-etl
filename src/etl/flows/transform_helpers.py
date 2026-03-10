@@ -1,4 +1,4 @@
-from config.config import *
+from src.config.config import *
 
 ##### helpers: start ########
 def ticker_table(currency_pair_code: str) -> str:

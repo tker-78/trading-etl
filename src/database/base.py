@@ -14,6 +14,8 @@ DB_PATH = os.path.join(PROJECT_ROOT, "ticker.sqlite")
 
 # for docker compose
 engine = create_engine('postgresql+psycopg2://postgres:postgres@forex-db:5432/forex')
+# engine = create_engine('postgresql+psycopg2://postgres:postgres@forex-db-dummy:5432/forex-dummy')
+
 # for localhost
 # engine = create_engine('postgresql+psycopg2://postgres:postgres@localhost:5432/forex')
 Session = sessionmaker(bind=engine)
