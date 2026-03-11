@@ -91,6 +91,23 @@ services:
       - "8765:8765"
     restart: always
 
+  alembic:
+    build:
+      context: .
+      dockerfile: docker/alembic.Dockerfile
+    working_dir: /app
+    command:
+      - alembic
+      - current
+    environment:
+      PYTHONPATH: /app
+    depends_on:
+      - forex-db
+    volumes:
+      - ./:/app
+    profiles:
+      - tools
+
   ui-server:
     image: python:3.12-slim
     working_dir: /app
