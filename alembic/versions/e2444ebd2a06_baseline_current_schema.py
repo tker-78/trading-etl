@@ -132,9 +132,10 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Downgrade schema."""
-    op.drop_table("dim_currency")
-    op.drop_table("dim_timeframe")
-    op.drop_table("fact_buysell_events")
+    # Drop in dependency order (children -> parents) to avoid FK violations.
     op.drop_table("fact_ema")
     op.drop_table("fact_rsi")
     op.drop_table("fact_sma")
+    op.drop_table("fact_buysell_events")
+    op.drop_table("dim_timeframe")
+    op.drop_table("dim_currency")
