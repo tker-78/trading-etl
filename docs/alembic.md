@@ -11,7 +11,7 @@ docker compose run --rm alembic alembic downgrade base # 初期状態に戻す
 ```
 
 ```
-docker compose run --rm alembic alembic revision <revision_name> # マイグレーションファイルを生成する
+docker compose run --rm alembic alembic revision -m <revision_name> # マイグレーションファイルを生成する
 ```
 
 ## 注意点
