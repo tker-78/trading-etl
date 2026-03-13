@@ -1,6 +1,6 @@
-<mxfile host="drawio-plugin" modified="2026-02-17T20:58:17.625Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="hzY2GXjhxr2O-dsikRbN" version="22.1.22" type="embed" pages="2">
+<mxfile host="drawio-plugin" modified="2026-03-13T21:36:07.281Z" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36" etag="5K37tpsvADhTNgIjEzOM" version="22.1.22" type="embed" pages="3">
   <diagram id="AUcg9H3SKQtR-ejoIEI9" name="system architecture">
-    <mxGraphModel dx="776" dy="379" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="860" dy="605" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -158,7 +158,7 @@
     </mxGraphModel>
   </diagram>
   <diagram id="G09TmrG_KPwYcTvlhy30" name="screen design">
-    <mxGraphModel dx="776" dy="379" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
+    <mxGraphModel dx="860" dy="605" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="850" pageHeight="1100" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -229,6 +229,71 @@
         </mxCell>
         <mxCell id="5Z2ndQ2mDT-GuatLfyIG-28" value="&lt;table cellpadding=&quot;0&quot; cellspacing=&quot;0&quot; style=&quot;width: 100%; height: 100%; font-size: 11px;&quot;&gt;&lt;tbody&gt;&lt;tr&gt;&lt;td style=&quot;width:85%&quot;&gt;14&lt;/td&gt;&lt;td style=&quot;width:15%&quot;&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/tbody&gt;&lt;/table&gt;" style="strokeWidth=1;shadow=0;dashed=0;align=center;html=1;shape=mxgraph.mockup.forms.spinner;strokeColor=#999999;spinLayout=right;spinStyle=normal;adjStyle=triangle;fillColor=#aaddff;fontSize=17;fontColor=#666666;mainText=;html=1;overflow=fill;" parent="1" vertex="1">
           <mxGeometry x="260" y="405" width="50" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram id="bgnwQjlRAJtuGlBfWVBd" name="alembic">
+    <mxGraphModel dx="860" dy="605" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-2" value="Alembicの使い方" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry width="110" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-12" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="8Qxx8-eWAlzkzOZFXFZ3-3" target="8Qxx8-eWAlzkzOZFXFZ3-11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-3" value="models" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="210" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-10" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="8Qxx8-eWAlzkzOZFXFZ3-4" target="8Qxx8-eWAlzkzOZFXFZ3-5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-18" value="手動実行" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="8Qxx8-eWAlzkzOZFXFZ3-10" vertex="1" connectable="0">
+          <mxGeometry x="-0.0966" y="-2" relative="1" as="geometry">
+            <mxPoint x="2" y="-12" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-4" value="SQL" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="70" y="80" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-5" value="DB Schema" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="280" y="80" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-21" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=0;entryY=0.25;entryDx=0;entryDy=0;exitX=1;exitY=0.25;exitDx=0;exitDy=0;" parent="1" source="8Qxx8-eWAlzkzOZFXFZ3-11" target="8Qxx8-eWAlzkzOZFXFZ3-20" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-24" value="Upgrade" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="8Qxx8-eWAlzkzOZFXFZ3-21" vertex="1" connectable="0">
+          <mxGeometry x="-0.156" y="-1" relative="1" as="geometry">
+            <mxPoint x="8" y="-11" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-11" value="Migration File" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="280" y="210" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-16" value="Alembicなしの場合" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="20" y="40" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-17" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 11px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; float: none; display: inline !important;&quot;&gt;生SQLをmodelsに落とし込む&lt;br&gt;&lt;/span&gt;" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="45" y="260" width="180" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-19" value="Alembicありの場合" style="text;html=1;align=center;verticalAlign=middle;resizable=0;points=[];autosize=1;strokeColor=none;fillColor=none;" parent="1" vertex="1">
+          <mxGeometry x="20" y="170" width="130" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-23" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;entryX=1;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="8Qxx8-eWAlzkzOZFXFZ3-20" target="8Qxx8-eWAlzkzOZFXFZ3-11" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-25" value="Downgrade" style="edgeLabel;html=1;align=center;verticalAlign=middle;resizable=0;points=[];" parent="8Qxx8-eWAlzkzOZFXFZ3-23" vertex="1" connectable="0">
+          <mxGeometry x="0.056" y="1" relative="1" as="geometry">
+            <mxPoint y="9" as="offset" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="8Qxx8-eWAlzkzOZFXFZ3-20" value="DB Schema" style="whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="490" y="210" width="110" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="diAbf35AjHCcE6qRxvvz-1" value="&lt;span style=&quot;color: rgb(0, 0, 0); font-family: Helvetica; font-size: 11px; font-style: normal; font-variant-ligatures: normal; font-variant-caps: normal; font-weight: 400; letter-spacing: normal; orphans: 2; text-align: center; text-indent: 0px; text-transform: none; widows: 2; word-spacing: 0px; -webkit-text-stroke-width: 0px; background-color: rgb(255, 255, 255); text-decoration-thickness: initial; text-decoration-style: initial; text-decoration-color: initial; float: none; display: inline !important;&quot;&gt;ETLではORMを使うメリットが小さいため、modelsは作らない。&lt;br&gt;AlembicはSQLマイグレーション管理に徹する。&lt;br&gt;&lt;/span&gt;" style="text;whiteSpace=wrap;html=1;" parent="1" vertex="1">
+          <mxGeometry x="40" y="320" width="330" height="50" as="geometry" />
         </mxCell>
       </root>
     </mxGraphModel>
