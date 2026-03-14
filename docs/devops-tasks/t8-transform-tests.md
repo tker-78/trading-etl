@@ -24,15 +24,15 @@
 
 ## 着手条件
 
-- [ ] `T7` のCI（`ruff` / `pytest`）が有効で、テスト結果をPR上で確認できる。
-- [ ] 対象フロー（`update_ohlc_tables` / 必要に応じて `create_ohlc_tables`）の現行挙動を把握できている。
-- [ ] 多通貨テストケースの期待値（`USD/JPY` + 非`USD/JPY` 1通貨）が合意されている。
+- [x] `T7` のCI（`ruff` / `pytest`）が有効で、テスト結果をPR上で確認できる。
+- [x] 対象フロー（`update_ohlc_tables` / 必要に応じて `create_ohlc_tables`）の現行挙動を把握できている。
+- [x] 多通貨テストケースの期待値（`USD/JPY` + 非`USD/JPY` 1通貨）が合意されている。
 
 ## Done定義
 
-- [ ] OHLC / indicator / strategy の最小スモークテストが追加され、`pytest` で安定して成功する。
-- [ ] 多通貨ケース（例: `USD/JPY`, `EUR/JPY`）で `base` / `derived` 呼び出し回数と `wait_for` 依存を検証できる。
-- [ ] 再実行安全性（重複挿入されないこと）をテストで担保できる。
+- [x] OHLC / indicator / strategy の最小スモークテストが追加され、`pytest` で安定して成功する。
+- [x] 多通貨ケース（例: `USD/JPY`, `EUR/JPY`）で `base` / `derived` 呼び出し回数と `wait_for` 依存を検証できる。
+- [x] 再実行安全性（重複挿入されないこと）をテストで担保できる。
 - [ ] CI（`push` / `pull_request`）で `ruff` と `pytest` がともに green。
 
 ## 検証コマンド
