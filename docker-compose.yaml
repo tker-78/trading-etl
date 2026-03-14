@@ -71,6 +71,7 @@ services:
     volumes:
       - flow-storage:/flow-storage
       - ./src/:/app/src
+      - ./config/:/app/config
     restart: always
 
   ws-ticker-server:
@@ -87,6 +88,7 @@ services:
       - ./src/gmo:/app/src/gmo
       - ./src/database:/app/src/database
       - ./src/config:/app/src/config
+      - ./config:/app/config
     ports:
       - "8765:8765"
     restart: always

@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 from src.database.base import session_scope
 from src.database.base import Base
 from sqlalchemy import Column, DateTime, Float, text
+from dotenv import load_dotenv
 
 UTC = timezone.utc
 JST = ZoneInfo('Asia/Tokyo')
@@ -171,4 +172,5 @@ class Streamer:
             time.sleep(RECONNECT_BACKOFF_SECONDS)
 
 if __name__ == '__main__':
+    load_dotenv()
     Streamer(ticker_list).run()

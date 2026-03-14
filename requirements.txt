@@ -5,3 +5,5 @@ websockets
 numpy
 ta-lib
 sqlalchemy
+
+python-dotenv
