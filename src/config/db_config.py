@@ -6,6 +6,10 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir
 def load_db_config():
     config = ConfigParser()
     ini_path = os.path.join(PROJECT_ROOT, 'config', 'config.ini')
+
+    if not os.path.exists(ini_path):
+        raise FileNotFoundError(f"config.ini not found in {PROJECT_ROOT}")
+
     config.read(ini_path)
     username = config.get('db', 'username')
     host = config.get('db', 'host')
