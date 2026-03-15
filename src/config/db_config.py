@@ -5,15 +5,13 @@ from sqlalchemy.engine import URL
 PROJECT_ROOT = os.path.abspath(
     os.path.join(os.path.dirname(__file__), os.pardir, os.pardir)
 )
-APP_ENV = os.getenv("APP_ENV", "dev")
 
 
 def get_db_url():
     config = ConfigParser()
+    env = os.getenv("APP_ENV", "dev")
 
-    if APP_ENV == "dev":
-        ini_path = os.path.join(PROJECT_ROOT, "config", "config.dev.ini")
-    elif APP_ENV == "test":
+    if env == "test":
         ini_path = os.path.join(PROJECT_ROOT, "config", "config.test.ini")
     else:
         ini_path = os.path.join(PROJECT_ROOT, "config", "config.dev.ini")
