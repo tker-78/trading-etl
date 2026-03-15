@@ -4,6 +4,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      APP_ENV: dev
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
@@ -14,10 +15,12 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      APP_ENV: test
     volumes:
-      - db-data:/var/lib/postgresql/data
+      - test-db-data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
+    profiles: ["test"]
 
   prefect-db:
     image: postgres:15
@@ -41,7 +44,9 @@ services:
       PREFECT_SERVER_DATABASE_CONNECTION_URL: postgresql+asyncpg://prefect:prefect@prefect-db:5432/prefect
 
   worker:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     command: prefect worker start --pool default-agent-pool
     working_dir: /app
     environment:
@@ -55,7 +60,9 @@ services:
     restart: always
 
   flow:
-    build: ./docker
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     working_dir: /app
     command: python -m src.gmo.ws-connection
     environment:
@@ -72,7 +79,9 @@ services:
     restart: always
 
   ws-ticker-server:
-    build: .
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
     working_dir: /app
     command: python -m src.gmo.ws_ticker_server
     environment:
@@ -104,8 +113,21 @@ services:
       - forex-db
     volumes:
       - ./:/app
-    profiles:
-      - tools
+    profiles: ["tools"]
+
+  test:
+    build:
+      context: .
+      dockerfile: docker/test.Dockerfile
+    working_dir: /app
+    environment:
+      PYTHONPATH: /app
+      APP_ENV: test
+    depends_on:
+      - test-db
+    volumes:
+      - ./:/app
+    profiles: ["test"]
 
   ui-server:
     image: python:3.12-slim
@@ -118,7 +140,7 @@ services:
     restart: always
 volumes:
   db-data:
-  dummy-db-data:
+  test-db-data:
   flow-storage:
   postgres_data:
 
