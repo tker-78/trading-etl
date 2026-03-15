@@ -17,6 +17,7 @@
 docker compose up -d
 ```
 
+
 supersetの起動
 
 ```bash
@@ -39,3 +40,18 @@ docker compose up -d ws-ticker-server ui-server
 
 `ws-ticker-server` は `8765:8765` を公開し、`ui-server` は `8080:8080` を公開する。
 ブラウザで `http://localhost:8080/ticker_usd_jpy.html` を開く。
+
+
+
+## テスト
+
+```bash
+# テスト環境を起動
+docker compose --profile test up -d
+```
+
+```
+
+```
+
+
