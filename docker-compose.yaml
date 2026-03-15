@@ -15,6 +15,7 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: forex-test
       APP_ENV: test
     volumes:
       - test-db-data:/var/lib/postgresql/data
