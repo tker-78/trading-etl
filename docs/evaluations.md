@@ -192,3 +192,49 @@ codex resume 019c8c1a-a83f-71d2-9f34-37ae1a8e28fc
   - 設計メモと実装のズレ: 最低限整理済み
 
   ここまでやると、個人学習初期としては かなり強い 状態になります。
+
+
+## 個人プロジェクトとしての評価メモ (2026/03/17)
+
+### 結論
+
+- このプロジェクトは「やりすぎ」でも「レベルが低い」でもない。
+- 個人プロジェクトとしてはかなり真面目で、やや設計先行・実務志向寄り。
+- 現状の評価は「素材は強いが、仕上げと一貫性はまだ改善余地あり」。
+
+### 良い点
+
+- Prefect の flow / task / service 分離があり、単発スクリプトではなく運用を意識した構成になっている。src/etl/flows/transform.py src/etl/flows/transform_tasks.py src/etl/flows/transform_services.py
+- Docker、Alembic、テスト、WebSocket UI まで含めていて、実行環境まで含めた設計になっている。docker-compose.yaml alembic/ tests/ ui/
+- 冪等性や依存関係を意識した実装・テストがあり、個人開発としては十分に水準が高い。tests/acceptance/test_transform_smoke.py tests/acceptance/test_transform_idempotency.py
+- Realtime / Transaction / Analytics 分離や grain 意識など、設計思想が明確。docs/design_v2.md
+
+### 惜しい点
+
+- README の導線が未完成で、第三者がすぐに再現しにくい。README.md
+- 設計書のスコープが広い一方で、未実装や `todo` が残っており、理想と現実の距離が見えやすい。docs/design_v2.md
+- テストは存在するが、環境依存の接続テストがあり、手元実行で安定しないケースがある。tests/database/test_base.py
+- 一部の実装はまだ仕上げ不足で、「実務っぽい雰囲気」に対して最終品質が追いついていない箇所がある。
+
+### 採用目線での見え方
+
+- 強み:
+  - ETL を書けるだけでなく、データ基盤を実行環境込みで考えている人に見える。
+  - Python / SQL / Docker / オーケストレーション / テストを横断して扱える印象を出せる。
+  - 学習用 CRUD ではなく、実務課題に寄せたテーマ設定になっている。
+- 弱み:
+  - 「思想は強いが、最後の詰めが甘い人」に見えるリスクがある。
+  - 広く作ろうとしている分、未整理部分や未完成箇所が目立つと逆効果になる。
+
+### 採用で刺さりやすくするための次アクション
+
+1. README を完成させる
+2. テスト実行前提を統一し、`pytest` か Docker 経由かを明確にする
+3. プロジェクトの主張を「リアルタイム ticker から OHLC・指標を作る ETL 基盤」に絞って見せる
+4. Prefect 採用理由、冪等性方針、時間足展開の設計理由を説明できるようにする
+5. 一発で再現できる小さなデモを 1 本仕上げる
+
+### 補足メモ
+
+- 2026/03/17 時点で `pytest -q` は `8 passed, 1 failed`。
+- 失敗はロジック不具合というより、`test-db` の名前解決に失敗する接続テスト由来。tests/database/test_base.py
