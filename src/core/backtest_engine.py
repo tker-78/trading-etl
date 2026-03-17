@@ -2,7 +2,8 @@
 from typing import Optional
 from src.database.base import session_scope
 
-class BacktestEngine: pass
+class BacktestEngine:
+    pass
 
 class BacktestFX(BacktestEngine):
     def __init__(self):
@@ -18,7 +19,7 @@ class BacktestFX(BacktestEngine):
         """
         yamlファイルの内容をもとにしてfact_buysell_eventsテーブルにevent情報を生成する
         """
-        config_dict = self._load_yaml()
+        # config_dict = self._load_yaml()
 
         # prefectのstrategy flowを走らせる。
 
@@ -27,7 +28,7 @@ class BacktestFX(BacktestEngine):
         with session_scope() as session:
             # fact_buysell_eventsにeventが生成されたことを確認する。
             # eventが0件であれば通知する
-            ...
+            session.commit()
 
 
 

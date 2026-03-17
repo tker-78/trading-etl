@@ -276,14 +276,14 @@ async def handler(client: ServerConnection) -> None:
     latest_ticker = latest_ticker_by_path.get(path)
 
     # clientの処理
-    connected = await registry.add(client)
+    await registry.add(client)
     try:
         cached = await latest_ticker.get()
         if cached is not None:
             await send_json(client, cached)
         await client.wait_closed()
     finally:
-        connected = await registry.remove(client)
+        await registry.remove(client)
 
 async def run_server() -> None:
     host = os.getenv("WS_HOST", "0.0.0.0")

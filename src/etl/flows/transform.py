@@ -1,7 +1,6 @@
 from prefect import flow
 
 from prefect_sqlalchemy import SqlAlchemyConnector
-from src.config.config import *
 from src.etl.flows.transform_tasks import (
 create_ticker_tables_task,
 create_ohlc_tables_task,
@@ -13,6 +12,7 @@ update_sma_task,
 insert_dead_cross_task,
 insert_golden_cross_task,
 )
+from src.config.config import RSI_FLOW_DEFAULT_PARAMS, SMA_FLOW_DEFAULT_PARAMS, EMA_FLOW_DEFAULT_PARAMS
 import src.etl.flows.transform_helpers as helpers
 
 
@@ -45,8 +45,6 @@ def create_ohlc_tables(block_name = "forex-connector"):
 
 @flow
 def update_ohlc_tables(block_name = "forex-connector"):
-    currencies = None
-    timeframes = None
     base_timeframe_code = "1m"
 
     query = """

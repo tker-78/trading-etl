@@ -2,7 +2,7 @@ from sqlalchemy.sql.elements import quoted_name
 import numpy as np
 import talib
 from prefect_sqlalchemy import SqlAlchemyConnector
-from src.config.config import *
+from src.config.config import SCHEMA_NAME_OHLC, SCHEMA_NAME_TICKER
 import src.etl.flows.transform_helpers as helpers
 
 ######### create ticker tables: start #########
@@ -363,7 +363,7 @@ def update_ema(connector,
             }
         )
 
-    insert_query = f"""
+    insert_query = """
     INSERT INTO fact_ema (time, currency_id, timeframe_id, period, calc_version, value)
     VALUES (:time, :currency_id, :timeframe_id, :period, :calc_version, :value)
     ON CONFLICT DO NOTHING;

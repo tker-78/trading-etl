@@ -1,4 +1,10 @@
-from src.config.config import *
+from src.config.config import (
+    RSI_TASK_DEFAULT_PARAMS,
+    SMA_TASK_DEFAULT_PARAMS,
+    SMA_GOLDEN_CROSS_PARAMS,
+    SMA_DEAD_CROSS_PARAMS,
+    EMA_TASK_DEFAULT_PARAMS,
+)
 
 ##### helpers: start ########
 def ticker_table(currency_pair_code: str) -> str:
